@@ -1,28 +1,28 @@
 from tkinter import *
 
-weiß_kurz = True
-weiß_lang = True
-schwarz_kurz = True
-schwarz_lang = True
-weiß_kurz_ausführen = False
-weiß_lang_ausführen = False
-schwarz_kurz_ausführen = False
-schwarz_lang_ausführen = False
-letzter_zug = None
+white_short = True
+white_long = True
+black_short = True
+black_long = True
+white_short_execute = False
+white_long_execute = False
+black_short_execute = False
+black_long_execute = False
+last_move = None
 
-richtungen_gerade = [
+direction_straight = [
     (+1, +0),
     (-1, +0),
     (+0, +1),
     (+0, -1)
 ]
-richtungen_diagonal = [
+direction_diagonal = [
     (+1, +1),
     (+1, -1),
     (-1, +1),
     (-1, -1)
 ]
-richtungen_Springer = [
+direction_Knight = [
     (+2, +1),
     (+2, -1),
     (-2, +1),
@@ -32,7 +32,7 @@ richtungen_Springer = [
     (-1, +2),
     (-1, -2)
 ]
-richtungen_König = [
+direction_King = [
     (+1, +1),
     (+1, -1),
     (+1, 0),
@@ -42,656 +42,624 @@ richtungen_König = [
     (0, +1),
     (0, -1),
 ]
-zügeKönig = [
-    (+1, +1),
-    (+1, 0),
-    (+1, -1),
-    (0, +1),
-    (0, -1),
-    (-1, +1),
-    (-1, 0),
-    (-1, -1)
-]
-sprünge = [
-    (+2, +1),
-    (+2, -1),
-    (-2, +1),
-    (-2, -1),
-    (+1, +2),
-    (+1, -2),
-    (-1, +2),
-    (-1, -2)
-]
-zügeTurm = [
-    (+1, 0),
-    (-1, 0),
-    (0, +1),
-    (0, -1),
-]
-zügeLäufer = [
-    (+1, +1),
-    (-1, +1),
-    (-1, -1),
-    (+1, -1),
-]
-def finde_springer(board):
-    Springer = []
-    for index, reihe in enumerate(board):
-            for spalte in range(8):
-                if board[index][spalte] == "S" or board[index][spalte] == "-S":
-                    Springer.append((index, spalte))
-    return Springer
+def find_knight(board):
+    knight = []
+    for index, row in enumerate(board):
+            for collum in range(8):
+                if board[index][collum] == "S" or board[index][collum] == "-S":
+                    knight.append((index, collum))
+    return knight
 
-def springer_züge(board, position):
-    felder_Springer = []
-    for sprung in sprünge:
-        neue_reihe = position[0] + sprung[0]
-        neue_spalte = position[1] + sprung[1]
+def knight_moves(board, square):
+    square_knight = []
+    for jump in direction_Knight:
+        new_row = square[0] + jump[0]
+        new_collum = square[1] + jump[1]
 
-        if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
+        if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
             continue
-        if board[position[0]][position[1]] == "-S":
-            if "-" in board[neue_reihe][neue_spalte]:
+        if board[square[0]][square[1]] == "-S":
+            if "-" in board[new_row][new_collum]:
                 continue
-        if board[position[0]][position[1]] == "S":
-            if ("-" not in board[neue_reihe][neue_spalte] and not board[neue_reihe][neue_spalte] == "0"):
+        if board[square[0]][square[1]] == "S":
+            if ("-" not in board[new_row][new_collum] and not board[new_row][new_collum] == "0"):
                 continue
 
-        felder_Springer.append((neue_reihe, neue_spalte))
-    return felder_Springer
+        square_knight.append((new_row, new_collum))
+    return square_knight
 
-def finde_turm(board):
-    Turm = []
-    for index, reihe in enumerate(board):
-            for spalte in range(8):
-                if board[index][spalte] == "T" or board[index][spalte] == "-T":
-                    Turm.append((index, spalte))
-    return Turm
+def find_rook(board):
+    rook = []
+    for index, row in enumerate(board):
+            for collum in range(8):
+                if board[index][collum] == "T" or board[index][collum] == "-T":
+                    rook.append((index, collum))
+    return rook
 
-def turm_züge(board, position):
-    felder_Turm = []
-    for richtung in zügeTurm:
-        aktuelle_reihe = position[0]
-        aktuelle_spalte = position[1]
-        TurmPossible = True
-        while TurmPossible == True:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
+def rook_moves(board, square):
+    square_rook = []
+    for direction in direction_straight:
+        now_row = square[0]
+        now_collum = square[1]
+        rookPossible = True
+        while rookPossible == True:
+            new_row = now_row + direction[0]
+            new_collum = now_collum + direction[1]
 
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                TurmPossible = False
+            if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
+                rookPossible = False
                 continue
-            if board[position[0]][position[1]] == "-T" or board[position[0]][position[1]] == "-D":
-                if "-" in board[neue_reihe][neue_spalte]:
-                    TurmPossible = False
+            if board[square[0]][square[1]] == "-T" or board[square[0]][square[1]] == "-D":
+                if "-" in board[new_row][new_collum]:
+                    rookPossible = False
                     continue
-            if board[position[0]][position[1]] == "T" or board[position[0]][position[1]] == "D":
-                if ("-" not in board[neue_reihe][neue_spalte] and not board[neue_reihe][neue_spalte] == "0"):
-                    TurmPossible = False
+            if board[square[0]][square[1]] == "T" or board[square[0]][square[1]] == "D":
+                if ("-" not in board[new_row][new_collum] and not board[new_row][new_collum] == "0"):
+                    rookPossible = False
                     continue
-            if board[position[0]][position[1]] == "-T" or board[position[0]][position[1]] == "-D":
-                if ("-" not in board[neue_reihe][neue_spalte] and not board[neue_reihe][neue_spalte] == "0"):
-                    felder_Turm.append((neue_reihe, neue_spalte))
-                    TurmPossible = False
+            if board[square[0]][square[1]] == "-T" or board[square[0]][square[1]] == "-D":
+                if ("-" not in board[new_row][new_collum] and not board[new_row][new_collum] == "0"):
+                    square_rook.append((new_row, new_collum))
+                    rookPossible = False
                     continue
-            if board[position[0]][position[1]] == "T" or board[position[0]][position[1]] == "D":
-                if "-" in board[neue_reihe][neue_spalte]:
-                    felder_Turm.append((neue_reihe, neue_spalte))
-                    TurmPossible = False
+            if board[square[0]][square[1]] == "T" or board[square[0]][square[1]] == "D":
+                if "-" in board[new_row][new_collum]:
+                    square_rook.append((new_row, new_collum))
+                    rookPossible = False
                     continue
-            if TurmPossible == True:
-                felder_Turm.append((neue_reihe, neue_spalte))
+            if rookPossible == True:
+                square_rook.append((new_row, new_collum))
 
-            aktuelle_reihe = neue_reihe
-            aktuelle_spalte = neue_spalte
+            now_row = new_row
+            now_collum = new_collum
 
-    return felder_Turm
+    return square_rook
 
-def finde_läufer(board):
-    Läufer = []
-    for index, reihe in enumerate(board):
-            for spalte in range(8):
-                if board[index][spalte] == "L" or board[index][spalte] == "-L":
-                    Läufer.append((index, spalte))
-    return Läufer
+def find_bishop(board):
+    bishop = []
+    for index, row in enumerate(board):
+            for collum in range(8):
+                if board[index][collum] == "L" or board[index][collum] == "-L":
+                    bishop.append((index, collum))
+    return bishop
 
-def läufer_züge(board, position):
-    felder_Läufer = []
-    for richtung in zügeLäufer:
-        aktuelle_reihe = position[0]
-        aktuelle_spalte = position[1]
-        LäuferPossible = True
-        while LäuferPossible == True:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                LäuferPossible = False
+def bishop_moves(board, square):
+    square_bishop = []
+    for direction in direction_diagonal:
+        now_row = square[0]
+        now_collum = square[1]
+        bishopPossible = True
+        while bishopPossible == True:
+            new_row = now_row + direction[0]
+            new_collum = now_collum + direction[1]
+            if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
+                bishopPossible = False
                 continue
-            if board[position[0]][position[1]] == "-L" or board[position[0]][position[1]] == "-D":
-                if "-" in board[neue_reihe][neue_spalte]:
-                    LäuferPossible = False
+            if board[square[0]][square[1]] == "-L" or board[square[0]][square[1]] == "-D":
+                if "-" in board[new_row][new_collum]:
+                    bishopPossible = False
                     continue
-            if board[position[0]][position[1]] == "L" or board[position[0]][position[1]] =="D":
-                if ("-" not in board[neue_reihe][neue_spalte] and not board[neue_reihe][neue_spalte] == "0"):
-                    LäuferPossible = False
+            if board[square[0]][square[1]] == "L" or board[square[0]][square[1]] =="D":
+                if ("-" not in board[new_row][new_collum] and not board[new_row][new_collum] == "0"):
+                    bishopPossible = False
                     continue
-            if board[position[0]][position[1]] == "-L" or board[position[0]][position[1]] == "-D":
-                if ("-" not in board[neue_reihe][neue_spalte] and not board[neue_reihe][neue_spalte] == "0"):
-                    felder_Läufer.append((neue_reihe, neue_spalte))
-                    LäuferPossible = False
+            if board[square[0]][square[1]] == "-L" or board[square[0]][square[1]] == "-D":
+                if ("-" not in board[new_row][new_collum] and not board[new_row][new_collum] == "0"):
+                    square_bishop.append((new_row, new_collum))
+                    bishopPossible = False
                     continue
-            if board[position[0]][position[1]] == "L" or board[position[0]][position[1]] =="D":
-                if "-" in board[neue_reihe][neue_spalte]:
-                    felder_Läufer.append((neue_reihe, neue_spalte))
-                    LäuferPossible = False
+            if board[square[0]][square[1]] == "L" or board[square[0]][square[1]] =="D":
+                if "-" in board[new_row][new_collum]:
+                    square_bishop.append((new_row, new_collum))
+                    bishopPossible = False
                     continue
-            if LäuferPossible == True:
-                felder_Läufer.append((neue_reihe, neue_spalte))
+            if bishopPossible == True:
+                square_bishop.append((new_row, new_collum))
 
-            aktuelle_reihe = neue_reihe
-            aktuelle_spalte = neue_spalte
+            now_row = new_row
+            now_collum = new_collum
 
-    return felder_Läufer
+    return square_bishop
 
-def finde_Dame(board):
-    Dame = []
-    for index, reihe in enumerate(board):
-            for spalte in range(8):
-                if board[index][spalte] == "D" or board[index][spalte] == "-D":
-                    Dame.append((index, spalte))
-    return Dame
+def find_Queen(board):
+    Queen = []
+    for index, row in enumerate(board):
+            for collum in range(8):
+                if board[index][collum] == "D" or board[index][collum] == "-D":
+                    Queen.append((index, collum))
+    return Queen
 
-def dame_züge(board, position):
-    turm_ergebnis = turm_züge(board, position)
-    läufer_ergebnis = läufer_züge(board, position)
-    felder_Dame = turm_ergebnis + läufer_ergebnis
-    return felder_Dame
+def queen_moves(board, square):
+    rook_ergebnis = rook_moves(board, square)
+    bishop_ergebnis = bishop_moves(board, square)
+    square_Queen = rook_ergebnis + bishop_ergebnis
+    return square_Queen
 
-def finde_König(board):
-    König = []
-    for index, reihe in enumerate(board):
-            for spalte in range(8):
-                if board[index][spalte] == "K" or board[index][spalte] == "-K":
-                    König.append((index, spalte))
-    return König
+def find_King(board):
+    king = []
+    for index, row in enumerate(board):
+            for collum in range(8):
+                if board[index][collum] == "K" or board[index][collum] == "-K":
+                    king.append((index, collum))
+    return king
 
-def könig_züge(board, position):
-    felder_König = []
-    for Zug in zügeKönig:
-        neue_reihe = position[0] + Zug[0]
-        neue_spalte = position[1] + Zug[1]
+def king_moves(board, square):
+    square_king = []
+    for Zug in direction_King:
+        new_row = square[0] + Zug[0]
+        new_collum = square[1] + Zug[1]
 
-        if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
+        if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
             continue
-        if board[position[0]][position[1]] == "K":
-            if ("-" not in board[neue_reihe][neue_spalte] and not board[neue_reihe][neue_spalte] == "0"):
+        if board[square[0]][square[1]] == "K":
+            if ("-" not in board[new_row][new_collum] and not board[new_row][new_collum] == "0"):
                 continue
 
-        if board[position[0]][position[1]] == "-K":
-            if "-" in board[neue_reihe][neue_spalte]:
+        if board[square[0]][square[1]] == "-K":
+            if "-" in board[new_row][new_collum]:
                 continue
 
 
-        felder_König.append((neue_reihe, neue_spalte))
-    if board[position[0]][position[1]] == "K":
-        if weiß_kurz == True:
+        square_king.append((new_row, new_collum))
+    if board[square[0]][square[1]] == "K":
+        if white_short == True:
             if board[7][5] == "0" and board[7][6] == "0":
-                felder_König.append((7,6))
-        if weiß_lang == True:
+                square_king.append((7,6))
+        if white_long == True:
             if board[7][1] == "0" and board[7][2] == "0" and board[7][3] == "0":
-                felder_König.append((7,2))
+                square_king.append((7,2))
 
-    if board[position[0]][position[1]] == "-K":
-        if schwarz_kurz == True:
+    if board[square[0]][square[1]] == "-K":
+        if black_short == True:
             if board[0][5] == "0" and board[0][6] == "0":
-                felder_König.append((0,6))
-        if schwarz_lang == True:
+                square_king.append((0,6))
+        if black_long == True:
             if board[0][1] == "0" and board[0][2] == "0" and board[0][3] == "0":
-                felder_König.append((0,2))
+                square_king.append((0,2))
 
-    return  felder_König
+    return  square_king
 
-def finde_Bauer(board):
-    Bauer = []
-    for index, reihe in enumerate(board):
-        for spalte in range(8):
-            if board[index][spalte] == "B" or board[index][spalte] == "-B":
-                Bauer.append((index, spalte))
-    return Bauer
+def finde_pawn(board):
+    pawn = []
+    for index, row in enumerate(board):
+        for collum in range(8):
+            if board[index][collum] == "B" or board[index][collum] == "-B":
+                pawn.append((index, collum))
+    return pawn
 
-def bauer_züge(board, position, farbe, letzter_zug):
-    felder_Bauer = []
-    zügeBauerWeiß = [
+def pawn_moves(board, square, color, last_move):
+    square_pawn = []
+    movespawnwhite = [
         (-1,+0)
     ]
-    zügeBauerSchwarz = [
+    movespawnblack = [
         (+1,+0),
     ]
-    if farbe == "weiß":
-        for Zug in zügeBauerWeiß:
-            if board[position[0]][position[1]] == "B":
-                neue_reihe = position[0] + Zug[0]
-                neue_spalte = position[1] + Zug[1]
-                if board[neue_reihe][neue_spalte] == "0":
-                    felder_Bauer.append((neue_reihe, neue_spalte))
-                if position[1] + 1 <= 7 and "-" in board[position[0] - 1][position[1] + 1]:
-                    neue_reihe = position[0] - 1
-                    neue_spalte = position[1] + 1
-                    if neue_spalte <= 7:
-                        felder_Bauer.append((neue_reihe, neue_spalte))
-                if position[1] - 1 >= 0 and "-" in board[position[0] - 1][position[1] - 1]:
-                    neue_reihe = position[0] - 1
-                    neue_spalte = position[1] - 1
-                    if neue_spalte >= 0:
-                        felder_Bauer.append((neue_reihe, neue_spalte))
-                if position[0] == 6:
-                    if board[position[0] - 1][position[1]] == "0" and board[position[0] - 2][position[1]] == "0":
-                        neue_reihe = position[0] - 2
-                        neue_spalte = position[1] + Zug[1]
-                        felder_Bauer.append((neue_reihe, neue_spalte))
-                if letzter_zug is not None and letzter_zug[2] == "-B" and position[0] == 3:
-                    if letzter_zug[0][0] == 1 and letzter_zug[1][0] == 3:
-                        letzte_spalte = letzter_zug[1][1]
-                        if letzte_spalte == position[1] + 1:
-                            felder_Bauer.append((2, letzte_spalte))
-                        if letzte_spalte == position[1] - 1:
-                            felder_Bauer.append((2, letzte_spalte))
+    if color == "white":
+        for Zug in movespawnwhite:
+            if board[square[0]][square[1]] == "B":
+                new_row = square[0] + Zug[0]
+                new_collum = square[1] + Zug[1]
+                if board[new_row][new_collum] == "0":
+                    square_pawn.append((new_row, new_collum))
+                if square[1] + 1 <= 7 and "-" in board[square[0] - 1][square[1] + 1]:
+                    new_row = square[0] - 1
+                    new_collum = square[1] + 1
+                    if new_collum <= 7:
+                        square_pawn.append((new_row, new_collum))
+                if square[1] - 1 >= 0 and "-" in board[square[0] - 1][square[1] - 1]:
+                    new_row = square[0] - 1
+                    new_collum = square[1] - 1
+                    if new_collum >= 0:
+                        square_pawn.append((new_row, new_collum))
+                if square[0] == 6:
+                    if board[square[0] - 1][square[1]] == "0" and board[square[0] - 2][square[1]] == "0":
+                        new_row = square[0] - 2
+                        new_collum = square[1] + Zug[1]
+                        square_pawn.append((new_row, new_collum))
+                if last_move is not None and last_move[2] == "-B" and square[0] == 3:
+                    if last_move[0][0] == 1 and last_move[1][0] == 3:
+                        collum_collum = last_move[1][1]
+                        if collum_collum == square[1] + 1:
+                            square_pawn.append((2, collum_collum))
+                        if collum_collum == square[1] - 1:
+                            square_pawn.append((2, collum_collum))
 
-    if farbe == "schwarz":
-        for Zug in zügeBauerSchwarz:
-            if board[position[0]][position[1]] == "-B":
-                neue_reihe = position[0] + Zug[0]
-                neue_spalte = position[1] + Zug[1]
-                if board[neue_reihe][neue_spalte] == "0":
-                    felder_Bauer.append((neue_reihe, neue_spalte))
-                if position[1] + 1 <= 7 and "-" not in board[position[0] + 1][position[1] + 1] and not board[position[0] + 1][position[1] + 1] == "0":
-                        neue_reihe = position[0] + 1
-                        neue_spalte = position[1] + 1
-                        if neue_spalte <= 7:
-                            felder_Bauer.append((neue_reihe, neue_spalte))
-                if position[1] - 1 >= 0 and "-" not in board[position[0] + 1][position[1] - 1] and not board[position[0] + 1][position[1] - 1] == "0":
-                    neue_reihe = position[0] + 1
-                    neue_spalte = position[1] - 1
-                    if neue_spalte >= 0:
-                        felder_Bauer.append((neue_reihe, neue_spalte))
-                if position[0] == 1:
-                    if board[position[0] + 1][position[1]] == "0" and board[position[0] + 2][position[1]] == "0":
-                        neue_reihe = position[0] + 2
-                        neue_spalte = position[1] + Zug[1]
-                        felder_Bauer.append((neue_reihe, neue_spalte))
-                if letzter_zug is not None and letzter_zug[2] == "B" and position[0] == 4:
-                    if letzter_zug[0][0] == 6 and letzter_zug[1][0] == 4:
-                        letzte_spalte = letzter_zug[1][1]
-                        if letzte_spalte == position[1] + 1:
-                            felder_Bauer.append((5, letzte_spalte))
-                        if letzte_spalte == position[1] - 1:
-                            felder_Bauer.append((5, letzte_spalte))
+    if color == "black":
+        for Zug in movespawnblack:
+            if board[square[0]][square[1]] == "-B":
+                new_row = square[0] + Zug[0]
+                new_collum = square[1] + Zug[1]
+                if board[new_row][new_collum] == "0":
+                    square_pawn.append((new_row, new_collum))
+                if square[1] + 1 <= 7 and "-" not in board[square[0] + 1][square[1] + 1] and not board[square[0] + 1][square[1] + 1] == "0":
+                        new_row = square[0] + 1
+                        new_collum = square[1] + 1
+                        if new_collum <= 7:
+                            square_pawn.append((new_row, new_collum))
+                if square[1] - 1 >= 0 and "-" not in board[square[0] + 1][square[1] - 1] and not board[square[0] + 1][square[1] - 1] == "0":
+                    new_row = square[0] + 1
+                    new_collum = square[1] - 1
+                    if new_collum >= 0:
+                        square_pawn.append((new_row, new_collum))
+                if square[0] == 1:
+                    if board[square[0] + 1][square[1]] == "0" and board[square[0] + 2][square[1]] == "0":
+                        new_row = square[0] + 2
+                        new_collum = square[1] + Zug[1]
+                        square_pawn.append((new_row, new_collum))
+                if last_move is not None and last_move[2] == "B" and square[0] == 4:
+                    if last_move[0][0] == 6 and last_move[1][0] == 4:
+                        collum_collum = last_move[1][1]
+                        if collum_collum == square[1] + 1:
+                            square_pawn.append((5, collum_collum))
+                        if collum_collum == square[1] - 1:
+                            square_pawn.append((5, collum_collum))
 
 
-    return felder_Bauer
+    return square_pawn
 
-def mache_zug(board,start_feld,ziel_feld):
-    global weiß_kurz, weiß_lang, schwarz_kurz, schwarz_lang
-    global weiß_kurz_ausführen, weiß_lang_ausführen
-    global schwarz_kurz_ausführen, schwarz_lang_ausführen
-    global letzter_zug
+def make_move(board,start_square,end_square):
+    global white_short, white_long, black_short, black_long
+    global white_short_execute, white_long_execute
+    global black_short_execute, black_long_execute
+    global last_move
 
-    felder = []
+    square = []
     erfolg = False
-    if "-" in board[start_feld[0]][start_feld[1]]:
-        farbe = "schwarz"
+    if "-" in board[start_square[0]][start_square[1]]:
+        color = "black"
     else:
-        farbe = "weiß"
-    if board[start_feld[0]][start_feld[1]] == "B":
-        felder = bauer_züge(board,start_feld, "weiß",letzter_zug)
-        farbe = "weiß"
-    if board[start_feld[0]][start_feld[1]] == "-B":
-        felder = bauer_züge(board, start_feld, "schwarz", letzter_zug)
-        farbe = "schwarz"
-    if "S" in board[start_feld[0]][start_feld[1]]:
-        felder = springer_züge(board,start_feld)
-    if "T" in board[start_feld[0]][start_feld[1]]:
-        felder = turm_züge(board, start_feld)
-    if "L" in board[start_feld[0]][start_feld[1]]:
-        felder = läufer_züge(board, start_feld)
-    if "D" in board[start_feld[0]][start_feld[1]]:
-        felder = dame_züge(board,start_feld)
-    if "K" in board[start_feld[0]][start_feld[1]]:
-        if start_feld == (7, 4) and ziel_feld == (7, 6):
-            weiß_kurz_ausführen = True
-        if start_feld == (7, 4) and ziel_feld == (7, 2):
-            weiß_lang_ausführen = True
-        if start_feld == (0, 4) and ziel_feld == (0, 6):
-            schwarz_kurz_ausführen = True
-        if start_feld == (0, 4) and ziel_feld == (0, 2):
-            schwarz_lang_ausführen = True
-        felder = könig_züge(board, start_feld)
-    if ziel_feld in felder:
-        figur = board[start_feld[0]][start_feld[1]]
-        ziel_inhalt = board[ziel_feld[0]][ziel_feld[1]]
-        board[ziel_feld[0]][ziel_feld[1]] = board[start_feld[0]][start_feld[1]]
-        board[start_feld[0]][start_feld[1]] = "0"
-        verursacht_schach = im_schach(board,farbe)
+        color = "white"
+    if board[start_square[0]][start_square[1]] == "B":
+        square = pawn_moves(board,start_square, "white",last_move)
+        color = "white"
+    if board[start_square[0]][start_square[1]] == "-B":
+        square = pawn_moves(board, start_square, "black", last_move)
+        color = "black"
+    if "S" in board[start_square[0]][start_square[1]]:
+        square = knight_moves(board,start_square)
+    if "T" in board[start_square[0]][start_square[1]]:
+        square = rook_moves(board, start_square)
+    if "L" in board[start_square[0]][start_square[1]]:
+        square = bishop_moves(board, start_square)
+    if "D" in board[start_square[0]][start_square[1]]:
+        square = queen_moves(board,start_square)
+    if "K" in board[start_square[0]][start_square[1]]:
+        if start_square == (7, 4) and end_square == (7, 6):
+            white_short_execute = True
+        if start_square == (7, 4) and end_square == (7, 2):
+            white_long_execute = True
+        if start_square == (0, 4) and end_square == (0, 6):
+            black_short_execute = True
+        if start_square == (0, 4) and end_square == (0, 2):
+            black_long_execute = True
+        square = king_moves(board, start_square)
+    if end_square in square:
+        piece = board[start_square[0]][start_square[1]]
+        target_inhalt = board[end_square[0]][end_square[1]]
+        board[end_square[0]][end_square[1]] = board[start_square[0]][start_square[1]]
+        board[start_square[0]][start_square[1]] = "0"
+        verursacht_schach = in_check(board,color)
         if verursacht_schach == True:
-            board[start_feld[0]][start_feld[1]] = figur
-            board[ziel_feld[0]][ziel_feld[1]] = ziel_inhalt
+            board[start_square[0]][start_square[1]] = piece
+            board[end_square[0]][end_square[1]] = target_inhalt
         else:
             rochade_blockiert = False
-            if weiß_kurz_ausführen == True:
-                if rochade_schach(board, (7,4), "weiß") == True or rochade_schach(board, (7,5), "weiß") == True or rochade_schach(board, (7,6), "weiß") == True:
-                    weiß_kurz_ausführen = False
-                    board[start_feld[0]][start_feld[1]] = figur
-                    board[ziel_feld[0]][ziel_feld[1]] = ziel_inhalt
+            if white_short_execute == True:
+                if rochade_schach(board, (7,4), "white") == True or rochade_schach(board, (7,5), "white") == True or rochade_schach(board, (7,6), "white") == True:
+                    white_short_execute = False
+                    board[start_square[0]][start_square[1]] = piece
+                    board[end_square[0]][end_square[1]] = target_inhalt
                     rochade_blockiert = True
                     erfolg = False
-                if weiß_kurz_ausführen == True:
+                if white_short_execute == True:
                     board[7][5] ="T"
                     board[7][7] ="0"
-                    weiß_kurz_ausführen = False
-                    weiß_lang_ausführen = False
-                    weiß_kurz = False
-                    weiß_lang = False
-            if weiß_lang_ausführen == True:
-                if rochade_schach(board, (7, 4), "weiß") == True or rochade_schach(board, (7, 3),"weiß") == True or rochade_schach(board, (7, 2), "weiß") == True:
-                    weiß_lang_ausführen = False
-                    board[start_feld[0]][start_feld[1]] = figur
-                    board[ziel_feld[0]][ziel_feld[1]] = ziel_inhalt
+                    white_short_execute = False
+                    white_long_execute = False
+                    white_short = False
+                    white_long = False
+            if white_long_execute == True:
+                if rochade_schach(board, (7, 4), "white") == True or rochade_schach(board, (7, 3),"white") == True or rochade_schach(board, (7, 2), "white") == True:
+                    white_long_execute = False
+                    board[start_square[0]][start_square[1]] = piece
+                    board[end_square[0]][end_square[1]] = target_inhalt
                     rochade_blockiert = True
                     erfolg = False
-                if weiß_lang_ausführen == True:
+                if white_long_execute == True:
                     board[7][3] ="T"
                     board[7][0] ="0"
-                    weiß_lang_ausführen = False
-                    weiß_kurz_ausführen = False
-                    weiß_lang = False
-                    weiß_kurz = False
-            if schwarz_kurz_ausführen == True:
-                if rochade_schach(board, (0, 4), "schwarz") == True or rochade_schach(board, (0, 5),"schwarz") == True or rochade_schach(board, (0, 6), "schwarz") == True:
-                    schwarz_kurz_ausführen = False
-                    board[start_feld[0]][start_feld[1]] = figur
-                    board[ziel_feld[0]][ziel_feld[1]] = ziel_inhalt
+                    white_long_execute = False
+                    white_short_execute = False
+                    white_long = False
+                    white_short = False
+            if black_short_execute == True:
+                if rochade_schach(board, (0, 4), "black") == True or rochade_schach(board, (0, 5),"black") == True or rochade_schach(board, (0, 6), "black") == True:
+                    black_short_execute = False
+                    board[start_square[0]][start_square[1]] = piece
+                    board[end_square[0]][end_square[1]] = target_inhalt
                     rochade_blockiert = True
                     erfolg = False
-                if schwarz_kurz_ausführen == True:
+                if black_short_execute == True:
                     board[0][5] ="-T"
                     board[0][7] ="0"
-                    schwarz_kurz_ausführen = False
-                    schwarz_lang_ausführen = False
-                    schwarz_kurz = False
-                    schwarz_lang = False
-            if schwarz_lang_ausführen == True:
-                if rochade_schach(board,(0,4),"schwarz") == True or rochade_schach(board, (0, 3),"schwarz") == True or rochade_schach(board, (0, 2),"schwarz") == True:
-                    schwarz_lang_ausführen = False
-                    board[start_feld[0]][start_feld[1]] = figur
-                    board[ziel_feld[0]][ziel_feld[1]] = ziel_inhalt
+                    black_short_execute = False
+                    black_long_execute = False
+                    black_short = False
+                    black_long = False
+            if black_long_execute == True:
+                if rochade_schach(board,(0,4),"black") == True or rochade_schach(board, (0, 3),"black") == True or rochade_schach(board, (0, 2),"black") == True:
+                    black_long_execute = False
+                    board[start_square[0]][start_square[1]] = piece
+                    board[end_square[0]][end_square[1]] = target_inhalt
                     rochade_blockiert = True
                     erfolg = False
-                if schwarz_lang_ausführen == True:
+                if black_long_execute == True:
                     board[0][3] ="-T"
                     board[0][0] ="0"
-                    schwarz_lang_ausführen = False
-                    schwarz_kurz_ausführen = False
-                    schwarz_lang = False
-                    schwarz_kurz = False
+                    black_long_execute = False
+                    black_short_execute = False
+                    black_long = False
+                    black_short = False
             if rochade_blockiert == False:
                 erfolg = True
             if erfolg == True:
-                if board[0][ziel_feld[1]] == "B":
-                    eingabePromotion = promotion_auswahl()
-                    if eingabePromotion == "Dame":
-                        board[0][ziel_feld[1]] = "D"
-                    if eingabePromotion == "Turm":
-                        board[0][ziel_feld[1]] = "T"
-                    if eingabePromotion == "Springer":
-                        board[0][ziel_feld[1]] = "S"
-                    if eingabePromotion == "Läufer":
-                        board[0][ziel_feld[1]] = "L"
-                if board[7][ziel_feld[1]] == "-B":
-                    board[7][ziel_feld[1]] = "-D"
-                if figur == "B" and ziel_inhalt == "0" and start_feld[1] != ziel_feld[1]:
-                    board[ziel_feld[0] + 1][ziel_feld[1]] = "0"
-                if figur == "-B" and ziel_inhalt == "0" and start_feld[1] != ziel_feld[1]:
-                    board[ziel_feld[0] - 1][ziel_feld[1]] = "0"
-                if "K" in figur:
-                    if farbe == "weiß":
-                        weiß_kurz = False
-                        weiß_lang = False
-                    if farbe == "schwarz":
-                        schwarz_kurz = False
-                        schwarz_lang = False
-                letzter_zug = (start_feld, ziel_feld, figur)
+                if board[0][end_square[1]] == "B":
+                    inputPromotion = promotion_auswahl()
+                    if inputPromotion == "Queen":
+                        board[0][end_square[1]] = "D"
+                    if inputPromotion == "rook":
+                        board[0][end_square[1]] = "T"
+                    if inputPromotion == "knight":
+                        board[0][end_square[1]] = "S"
+                    if inputPromotion == "bishop":
+                        board[0][end_square[1]] = "L"
+                if board[7][end_square[1]] == "-B":
+                    board[7][end_square[1]] = "-D"
+                if piece == "B" and target_inhalt == "0" and start_square[1] != end_square[1]:
+                    board[end_square[0] + 1][end_square[1]] = "0"
+                if piece == "-B" and target_inhalt == "0" and start_square[1] != end_square[1]:
+                    board[end_square[0] - 1][end_square[1]] = "0"
+                if "K" in piece:
+                    if color == "white":
+                        white_short = False
+                        white_long = False
+                    if color == "black":
+                        black_short = False
+                        black_long = False
+                last_move = (start_square, end_square, piece)
     return erfolg
 
-def im_schach(board,farbe):
-    König_angegriefen = False
-    König = finde_König(board)
-    if len(König) < 2:
+def in_check(board,color):
+    king_attacked = False
+    king = find_King(board)
+    if len(king) < 2:
         return False
     Position = None
-    for k in König:
-        if farbe == "weiß" and "-" not in board[k[0]][k[1]]:
+    for k in king:
+        if color == "white" and "-" not in board[k[0]][k[1]]:
             Position = k
-        if farbe == "schwarz" and "-" in board[k[0]][k[1]]:
+        if color == "black" and "-" in board[k[0]][k[1]]:
             Position = k
     if Position is None:
         return False
-    position = Position
-    for richtung in richtungen_gerade:
-        aktuelle_reihe = position[0]
-        aktuelle_spalte = position[1]
-        figur_gefunden = False
-        while not figur_gefunden:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                figur_gefunden = True
+    square = Position
+    for direction in direction_straight:
+        now_row = square[0]
+        now_collum = square[1]
+        piece_found = False
+        while not piece_found:
+            new_row = now_row + direction[0]
+            new_collum = now_collum + direction[1]
+            if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
+                piece_found = True
                 continue
-            if farbe == "weiß":
-                if board[neue_reihe][neue_spalte] == "-T" or board[neue_reihe][neue_spalte] == "-D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+            if color == "white":
+                if board[new_row][new_collum] == "-T" or board[new_row][new_collum] == "-D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
             else:
-                if board[neue_reihe][neue_spalte] == "T" or board[neue_reihe][neue_spalte] == "D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                if board[new_row][new_collum] == "T" or board[new_row][new_collum] == "D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
 
-    for richtung in richtungen_diagonal:
-        aktuelle_reihe = position[0]
-        aktuelle_spalte = position[1]
-        figur_gefunden = False
-        while not figur_gefunden:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                figur_gefunden = True
+    for direction in direction_diagonal:
+        now_row = square[0]
+        now_collum = square[1]
+        piece_found = False
+        while not piece_found:
+            new_row = now_row + direction[0]
+            new_collum = now_collum + direction[1]
+            if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
+                piece_found = True
                 continue
-            if farbe == "weiß":
-                if board[neue_reihe][neue_spalte] == "-L" or board[neue_reihe][neue_spalte] == "-D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+            if color == "white":
+                if board[new_row][new_collum] == "-L" or board[new_row][new_collum] == "-D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
             else:
-                if board[neue_reihe][neue_spalte] == "L" or board[neue_reihe][neue_spalte] == "D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                if board[new_row][new_collum] == "L" or board[new_row][new_collum] == "D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
 
-    if farbe == "weiß":
+    if color == "white":
         if Position[0] - 1 >= 0 and Position[1] + 1 <= 7:
             if board[Position[0] - 1][Position[1] + 1] == "-B":
-                König_angegriefen = True
+                king_attacked = True
         if Position[0] - 1 >= 0 and Position[1] - 1 >= 0:
             if board[Position[0] - 1][Position[1] - 1] == "-B":
-                König_angegriefen = True
-    if farbe == "schwarz":
+                king_attacked = True
+    if color == "black":
         if Position[0] + 1 <= 7 and Position[1] + 1 <= 7:
             if board[Position[0] + 1][Position[1] + 1] == "B":
-                König_angegriefen = True
+                king_attacked = True
         if Position[0] + 1 <= 7 and Position[1] - 1 >= 0:
             if board[Position[0] + 1][Position[1] - 1] == "B":
-                König_angegriefen = True
+                king_attacked = True
 
-    for richtung in richtungen_Springer:
-        neue_reihe = position[0] + richtung[0]
-        neue_spalte = position[1] + richtung[1]
-        if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
+    for direction in direction_Knight:
+        new_row = square[0] + direction[0]
+        new_collum = square[1] + direction[1]
+        if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
             continue
-        if farbe == "weiß":
-            if board[neue_reihe][neue_spalte] == "-S":
-                König_angegriefen = True
-        if farbe == "schwarz":
-            if board[neue_reihe][neue_spalte] == "S":
-                König_angegriefen = True
+        if color == "white":
+            if board[new_row][new_collum] == "-S":
+                king_attacked = True
+        if color == "black":
+            if board[new_row][new_collum] == "S":
+                king_attacked = True
 
-    for richtung in richtungen_König:
-        neue_reihe = position[0] + richtung[0]
-        neue_spalte = position[1] + richtung[1]
-        if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
+    for direction in direction_King:
+        new_row = square[0] + direction[0]
+        new_collum = square[1] + direction[1]
+        if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
             continue
-        if farbe == "weiß":
-            if board[neue_reihe][neue_spalte] == "-K":
-                König_angegriefen = True
-        if farbe == "schwarz":
-            if board[neue_reihe][neue_spalte] == "K":
-                König_angegriefen = True
-    return König_angegriefen
+        if color == "white":
+            if board[new_row][new_collum] == "-K":
+                king_attacked = True
+        if color == "black":
+            if board[new_row][new_collum] == "K":
+                king_attacked = True
+    return king_attacked
 
-def rochade_schach(board,position,farbe):
-    König_angegriefen = False
-    for richtung in richtungen_gerade:
-        aktuelle_reihe = position[0]
-        aktuelle_spalte = position[1]
-        figur_gefunden = False
-        while not figur_gefunden:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                figur_gefunden = True
+def rochade_schach(board,square,color):
+    king_attacked = False
+    for direction in direction_straight:
+        now_row = square[0]
+        now_collum = square[1]
+        piece_found = False
+        while not piece_found:
+            new_row = now_row + direction[0]
+            new_collum = now_collum + direction[1]
+            if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
+                piece_found = True
                 continue
-            if farbe == "weiß":
-                if board[neue_reihe][neue_spalte] == "-T" or board[neue_reihe][neue_spalte] == "-D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+            if color == "white":
+                if board[new_row][new_collum] == "-T" or board[new_row][new_collum] == "-D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
             else:
-                if board[neue_reihe][neue_spalte] == "T" or board[neue_reihe][neue_spalte] == "D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                if board[new_row][new_collum] == "T" or board[new_row][new_collum] == "D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
 
-    for richtung in richtungen_diagonal:
-        aktuelle_reihe = position[0]
-        aktuelle_spalte = position[1]
-        figur_gefunden = False
-        while not figur_gefunden:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                figur_gefunden = True
+    for direction in direction_diagonal:
+        now_row = square[0]
+        now_collum = square[1]
+        piece_found = False
+        while not piece_found:
+            new_row = now_row + direction[0]
+            new_collum = now_collum + direction[1]
+            if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
+                piece_found = True
                 continue
-            if farbe == "weiß":
-                if board[neue_reihe][neue_spalte] == "-L" or board[neue_reihe][neue_spalte] == "-D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+            if color == "white":
+                if board[new_row][new_collum] == "-L" or board[new_row][new_collum] == "-D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
             else:
-                if board[neue_reihe][neue_spalte] == "L" or board[neue_reihe][neue_spalte] == "D":
-                    figur_gefunden = True
-                    König_angegriefen = True
-                if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                if board[new_row][new_collum] == "L" or board[new_row][new_collum] == "D":
+                    piece_found = True
+                    king_attacked = True
+                if not board[new_row][new_collum] == "0":
+                    piece_found = True
                     continue
-                aktuelle_reihe = neue_reihe
-                aktuelle_spalte = neue_spalte
+                now_row = new_row
+                now_collum = new_collum
 
-    if farbe == "weiß":
-        if position[0] + 1 <= 7 and position[1] + 1 <= 7:
-            if board[position[0] - 1][position[1] + 1] == "-B":
-                König_angegriefen = True
-        if position[0] + 1 <= 7 and position[1] - 1 >= 0:
-            if board[position[0] - 1][position[1] - 1] == "-B":
-                König_angegriefen = True
-    if farbe == "schwarz":
-        if position[0] - 1 >= 0 and position[1] + 1 <= 7:
-            if board[position[0] + 1][position[1] + 1] == "B":
-                König_angegriefen = True
-        if position[0] - 1 >= 0 and position[1] - 1 >= 0:
-            if board[position[0] + 1][position[1] - 1] == "B":
-                König_angegriefen = True
+    if color == "white":
+        if square[0] + 1 <= 7 and square[1] + 1 <= 7:
+            if board[square[0] - 1][square[1] + 1] == "-B":
+                king_attacked = True
+        if square[0] + 1 <= 7 and square[1] - 1 >= 0:
+            if board[square[0] - 1][square[1] - 1] == "-B":
+                king_attacked = True
+    if color == "black":
+        if square[0] - 1 >= 0 and square[1] + 1 <= 7:
+            if board[square[0] + 1][square[1] + 1] == "B":
+                king_attacked = True
+        if square[0] - 1 >= 0 and square[1] - 1 >= 0:
+            if board[square[0] + 1][square[1] - 1] == "B":
+                king_attacked = True
 
-    for richtung in richtungen_Springer:
-        neue_reihe = position[0] + richtung[0]
-        neue_spalte = position[1] + richtung[1]
-        if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
+    for direction in direction_Knight:
+        new_row = square[0] + direction[0]
+        new_collum = square[1] + direction[1]
+        if new_row < 0 or new_row > 7 or new_collum < 0 or new_collum > 7:
             continue
-        if farbe == "weiß":
-            if board[neue_reihe][neue_spalte] == "-S":
-                König_angegriefen = True
-        if farbe == "schwarz":
-            if board[neue_reihe][neue_spalte] == "S":
-                König_angegriefen = True
+        if color == "white":
+            if board[new_row][new_collum] == "-S":
+                king_attacked = True
+        if color == "black":
+            if board[new_row][new_collum] == "S":
+                king_attacked = True
 
-    return König_angegriefen
+    return king_attacked
 
 def promotion_auswahl():
-    fenster_Tk = Tk()
-    fenster_Tk.title("Chess Engine")
-    fenster_Tk.geometry("100x100")
-    global eingabePromotion
-    eingabePromotion = None
-    def promotion_Dame():
-        global eingabePromotion
-        eingabePromotion = "Dame"
-        fenster_Tk.destroy()
-    def promotion_Turm():
-        global eingabePromotion
-        eingabePromotion = "Turm"
-        fenster_Tk.destroy()
-    def promotion_Läufer():
-        global eingabePromotion
-        eingabePromotion = "Läufer"
-        fenster_Tk.destroy()
-    def promotion_Springer():
-        global eingabePromotion
-        eingabePromotion = "Springer"
-        fenster_Tk.destroy()
-    buttonDame = Button(fenster_Tk, text="Dame",command=promotion_Dame)
-    buttonDame.grid()
-    buttonTurm = Button(fenster_Tk, text="Turm",command=promotion_Turm)
-    buttonTurm.grid()
-    buttonLäufer = Button(fenster_Tk, text="Läufer", command=promotion_Läufer)
-    buttonLäufer.grid()
-    buttonSpringer = Button(fenster_Tk, text="Springer", command=promotion_Springer)
-    buttonSpringer.grid()
-    fenster_Tk.mainloop()
-    return eingabePromotion
+    window_Tk = Tk()
+    window_Tk.title("Chess Engine")
+    window_Tk.geometry("100x100")
+    global inputPromotion
+    inputPromotion = None
+    def promotion_Queen():
+        global inputPromotion
+        inputPromotion = "Queen"
+        window_Tk.destroy()
+    def promotion_rook():
+        global inputPromotion
+        inputPromotion = "rook"
+        window_Tk.destroy()
+    def promotion_bishop():
+        global inputPromotion
+        inputPromotion = "bishop"
+        window_Tk.destroy()
+    def promotion_knight():
+        global inputPromotion
+        inputPromotion = "knight"
+        window_Tk.destroy()
+    buttonQueen = Button(window_Tk, text="Queen",command=promotion_Queen)
+    buttonQueen.grid()
+    buttonrook = Button(window_Tk, text="rook",command=promotion_rook)
+    buttonrook.grid()
+    buttonbishop = Button(window_Tk, text="bishop", command=promotion_bishop)
+    buttonbishop.grid()
+    buttonknight = Button(window_Tk, text="knight", command=promotion_knight)
+    buttonknight.grid()
+    window_Tk.mainloop()
+    return inputPromotion

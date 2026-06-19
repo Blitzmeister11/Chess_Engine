@@ -61,7 +61,7 @@ piece_square_table_king = [
     [+20,+20,+0,+0,+0,+0,+20,+20],
     [+20,+30,+5,+0,+0,+5,+30,+20]
 ]
-figuren_werte = {
+piece_score = {
         "B": 1,
         "-B": 1,
         "L": 3,
@@ -75,91 +75,91 @@ figuren_werte = {
         "K": 0,
         "-K":0
 }
-transposition_tabelle = {}
+transsquare_table = {}
 board = create_board()
-def alle_züge(board):
-    alle_züge = []
+def all_moves(board):
+    all_moves = []
     for row in range(8):
         for col in range(8):
             felder = []
             if "-" in board[row][col]:
                 if board[row][col] == "-D":
-                    position = (row, col)
-                    felder = dame_züge(board, position)
+                    square = (row, col)
+                    felder = queen_moves(board, square)
                 if board[row][col] == "-T":
-                    position = (row, col)
-                    felder = turm_züge(board, position)
+                    square = (row, col)
+                    felder = rook_moves(board, square)
                 if board[row][col] == "-L":
-                    position = (row, col)
-                    felder = läufer_züge(board, position)
+                    square = (row, col)
+                    felder = bishop_moves(board, square)
                 if board[row][col] == "-S":
-                    position = (row, col)
-                    felder = springer_züge(board, position)
+                    square = (row, col)
+                    felder = knight_moves(board, square)
                 if board[row][col] == "-B":
-                    position = (row, col)
-                    felder = bauer_züge(board, position, "schwarz", letzter_zug)
+                    square = (row, col)
+                    felder = pawn_moves(board, square, "black", last_move)
                 if board[row][col] == "-K":
-                    position = (row, col)
-                    felder = könig_züge(board, position)
-                for ziel in felder:
-                    alle_züge.append((position, ziel))
-    alt_letzter_zug = moves.letzter_zug
-    for zug in alle_züge[:]:
-        start, ziel = zug
-        figur = board[start[0]][start[1]]
-        ziel_inhalt = board[ziel[0]][ziel[1]]
-        board[ziel[0]][ziel[1]] = figur
+                    square = (row, col)
+                    felder = king_moves(board, square)
+                for target in felder:
+                    all_moves.append((square, target))
+    prev_last_move = moves.last_move
+    for zug in all_moves[:]:
+        start, target = zug
+        piece = board[start[0]][start[1]]
+        target_inhalt = board[target[0]][target[1]]
+        board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
-        möglich = im_schach(board, "schwarz")
+        möglich = in_check(board, "black")
         if möglich == True:
-            alle_züge.remove(zug)
-        board[start[0]][start[1]] = figur
-        board[ziel[0]][ziel[1]] = ziel_inhalt
-        moves.letzter_zug = alt_letzter_zug
+            all_moves.remove(zug)
+        board[start[0]][start[1]] = piece
+        board[target[0]][target[1]] = target_inhalt
+        moves.last_move = prev_last_move
 
-    return alle_züge
+    return all_moves
 
-def alle_züge_weiß(board):
-    alle_züge = []
+def all_moves_white(board):
+    all_moves = []
     for row in range(8):
         for col in range(8):
             felder = []
             if "-" not in board[row][col] and board[row][col] != "0":
                 if board[row][col] == "D":
-                    position = (row, col)
-                    felder = dame_züge(board, position)
+                    square = (row, col)
+                    felder = queen_moves(board, square)
                 if board[row][col] == "T":
-                    position = (row, col)
-                    felder = turm_züge(board, position)
+                    square = (row, col)
+                    felder = rook_moves(board, square)
                 if board[row][col] == "L":
-                    position = (row, col)
-                    felder = läufer_züge(board, position)
+                    square = (row, col)
+                    felder = bishop_moves(board, square)
                 if board[row][col] == "S":
-                    position = (row, col)
-                    felder = springer_züge(board, position)
+                    square = (row, col)
+                    felder = knight_moves(board, square)
                 if board[row][col] == "B":
-                    position = (row, col)
-                    felder = bauer_züge(board, position, "weiß", letzter_zug)
+                    square = (row, col)
+                    felder = pawn_moves(board, square, "white", last_move)
                 if board[row][col] == "K":
-                    position = (row, col)
-                    felder = könig_züge(board, position)
-                for ziel in felder:
-                    alle_züge.append((position, ziel))
-    alt_letzter_zug = moves.letzter_zug
-    for zug in alle_züge[:]:
-        start, ziel = zug
-        figur = board[start[0]][start[1]]
-        ziel_inhalt = board[ziel[0]][ziel[1]]
-        board[ziel[0]][ziel[1]] = figur
+                    square = (row, col)
+                    felder = king_moves(board, square)
+                for target in felder:
+                    all_moves.append((square, target))
+    prev_last_move = moves.last_move
+    for zug in all_moves[:]:
+        start, target = zug
+        piece = board[start[0]][start[1]]
+        target_inhalt = board[target[0]][target[1]]
+        board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
-        möglich = im_schach(board, "weiß")
+        möglich = in_check(board, "white")
         if möglich == True:
-            alle_züge.remove(zug)
-        board[start[0]][start[1]] = figur
-        board[ziel[0]][ziel[1]] = ziel_inhalt
-        moves.letzter_zug = alt_letzter_zug
+            all_moves.remove(zug)
+        board[start[0]][start[1]] = piece
+        board[target[0]][target[1]] = target_inhalt
+        moves.last_move = prev_last_move
 
-    return alle_züge
+    return all_moves
 
 def bewerte_material(board):
     material = 0
@@ -202,229 +202,229 @@ def bewerte_material(board):
 
     return material
 
-def wähle_zug(board):
-    schlag_züge = []
-    ruhige_züge = []
+def choose_move(board):
+    capture_moves = []
+    quiet_moves = []
     tiefe = 5
     alpha = -1000
     beta = 1000
-    alt_weiß_kurz = moves.weiß_kurz
-    alt_weiß_lang = moves.weiß_lang
-    alt_schwarz_kurz = moves.schwarz_kurz
-    alt_schwarz_lang = moves.schwarz_lang
-    alt_letzter_zug = moves.letzter_zug
-    züge_liste = alle_züge(board)
-    if züge_liste == []:
+    old_white_short = moves.white_short
+    old_white_long = moves.white_long
+    old_black_short = moves.black_short
+    old_black_long = moves.black_long
+    prev_last_move = moves.last_move
+    moves_list = all_moves(board)
+    if moves_list == []:
         return None
-    bester_zug = []
-    beste_bewertung = -9999999
-    for zug in züge_liste:
-        start, ziel = zug
-        if not board[ziel[0]][ziel[1]] == "0":
-            schlag_züge.append(zug)
+    best_move = []
+    best_score = -9999999
+    for zug in moves_list:
+        start, target = zug
+        if not board[target[0]][target[1]] == "0":
+            capture_moves.append(zug)
         else:
-            ruhige_züge.append(zug)
-    züge_liste = schlag_züge + ruhige_züge
-    züge_liste.sort(key=lambda zug: score(board, zug[0], zug[1], "schwarz"), reverse=True)
-    for zug in züge_liste:
-        start, ziel = zug
-        figur = board[start[0]][start[1]]
-        ziel_inhalt = board[ziel[0]][ziel[1]]
-        board[ziel[0]][ziel[1]] = figur
+            quiet_moves.append(zug)
+    moves_list = capture_moves + quiet_moves
+    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1], "black"), reverse=True)
+    for zug in moves_list:
+        start, target = zug
+        piece = board[start[0]][start[1]]
+        target_inhalt = board[target[0]][target[1]]
+        board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
         evaluation = minimax(board, tiefe -1, False, alpha, beta)
-        if evaluation > beste_bewertung:
-            beste_bewertung = evaluation
-            bester_zug = []
-            bester_zug.append(zug)
-            alpha = beste_bewertung
-        elif evaluation == beste_bewertung:
-            bester_zug.append(zug)
-        board[start[0]][start[1]] = figur
-        board[ziel[0]][ziel[1]] = ziel_inhalt
-        moves.weiß_kurz = alt_weiß_kurz
-        moves.weiß_lang = alt_weiß_lang
-        moves.schwarz_kurz = alt_schwarz_kurz
-        moves.schwarz_lang = alt_schwarz_lang
-        moves.letzter_zug = alt_letzter_zug
-    return bester_zug[0]
+        if evaluation > best_score:
+            best_score = evaluation
+            best_move = []
+            best_move.append(zug)
+            alpha = best_score
+        elif evaluation == best_score:
+            best_move.append(zug)
+        board[start[0]][start[1]] = piece
+        board[target[0]][target[1]] = target_inhalt
+        moves.white_short = old_white_short
+        moves.white_long = old_white_long
+        moves.black_short = old_black_short
+        moves.black_long = old_black_long
+        moves.last_move = prev_last_move
+    return best_move[0]
 
 
-def minimax(board, tiefe, ist_maximirend, alpha, beta):
+def minimax(board, tiefe, is_maximizing, alpha, beta):
     if tiefe == 0:
         return bewerte_material(board)
-    schlüssel = (tuple(tuple(reihe) for reihe in board), tiefe)
-    if schlüssel in transposition_tabelle:
-        gespeichert_wert, gespeichert_typ = transposition_tabelle[schlüssel]
-        if gespeichert_typ == "exakt":
-            return gespeichert_wert
-        if gespeichert_typ == "untere_grenze":
-            alpha = max(alpha, gespeichert_wert)
-        if gespeichert_typ == "obere_grenze":
-            beta = min(beta, gespeichert_wert)
+    key = (tuple(tuple(reihe) for reihe in board), tiefe)
+    if key in transsquare_table:
+        stored_value, stored_type = transsquare_table[key]
+        if stored_type == "exakt":
+            return stored_value
+        if stored_type == "untere_grenze":
+            alpha = max(alpha, stored_value)
+        if stored_type == "obere_grenze":
+            beta = min(beta, stored_value)
         if alpha >= beta:
-            return gespeichert_wert
-    bewertungen = []
-    if ist_maximirend == True:
-        züge_liste = alle_züge(board)
-    if ist_maximirend == False:
-        züge_liste = alle_züge_weiß(board)
-    if züge_liste == []:
-        if im_schach(board, "weiß") == True and ist_maximirend == False:
+            return stored_value
+    scores = []
+    if is_maximizing == True:
+        moves_list = all_moves(board)
+    if is_maximizing == False:
+        moves_list = all_moves_white(board)
+    if moves_list == []:
+        if in_check(board, "white") == True and is_maximizing == False:
             return 1000 + tiefe
-        if im_schach(board, "schwarz") == True and ist_maximirend == True:
+        if in_check(board, "black") == True and is_maximizing == True:
             return -1000 - tiefe
         return 0
-    alt_letzter_zug = moves.letzter_zug
-    alt_weiß_kurz = moves.weiß_kurz
-    alt_weiß_lang = moves.weiß_lang
-    alt_schwarz_kurz = moves.schwarz_kurz
-    alt_schwarz_lang = moves.schwarz_lang
-    for zug in züge_liste:
-        start, ziel = zug
-        figur = board[start[0]][start[1]]
-        ziel_inhalt = board[ziel[0]][ziel[1]]
-        board[ziel[0]][ziel[1]] = figur
+    prev_last_move = moves.last_move
+    old_white_short = moves.white_short
+    old_white_long = moves.white_long
+    old_black_short = moves.black_short
+    old_black_long = moves.black_long
+    for zug in moves_list:
+        start, target = zug
+        piece = board[start[0]][start[1]]
+        target_inhalt = board[target[0]][target[1]]
+        board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
-        ergebnis = minimax(board, tiefe - 1, not ist_maximirend, alpha, beta)
-        bewertungen.append(ergebnis)
-        if ist_maximirend == True:
+        ergebnis = minimax(board, tiefe - 1, not is_maximizing, alpha, beta)
+        scores.append(ergebnis)
+        if is_maximizing == True:
             alpha = max(alpha, ergebnis)
-        if ist_maximirend == False:
+        if is_maximizing == False:
             beta = min(beta, ergebnis)
-        board[start[0]][start[1]] = figur
-        board[ziel[0]][ziel[1]] = ziel_inhalt
-        moves.weiß_kurz = alt_weiß_kurz
-        moves.weiß_lang = alt_weiß_lang
-        moves.schwarz_kurz = alt_schwarz_kurz
-        moves.schwarz_lang = alt_schwarz_lang
-        moves.letzter_zug = alt_letzter_zug
+        board[start[0]][start[1]] = piece
+        board[target[0]][target[1]] = target_inhalt
+        moves.white_short = old_white_short
+        moves.white_long = old_white_long
+        moves.black_short = old_black_short
+        moves.black_long = old_black_long
+        moves.last_move = prev_last_move
         if alpha >= beta:
             break
-    ergebnis = max(bewertungen) if ist_maximirend else min(bewertungen)
+    ergebnis = max(scores) if is_maximizing else min(scores)
     if ergebnis <= alpha:
-        transposition_tabelle[schlüssel] = (ergebnis, "obere_grenze")
+        transsquare_table[key] = (ergebnis, "obere_grenze")
     elif ergebnis >= beta:
-        transposition_tabelle[schlüssel] = (ergebnis, "untere_grenze")
+        transsquare_table[key] = (ergebnis, "untere_grenze")
     else:
-        transposition_tabelle[schlüssel] = (ergebnis, "exakt")
+        transsquare_table[key] = (ergebnis, "exakt")
     return ergebnis
 
-def score(board, start, ziel, farbe):
-    if board[ziel[0]][ziel[1]] != "0":
-        return SEE(board, ziel, farbe)
-    wert_start = figuren_werte.get(board[start[0]][start[1]], 0)
-    wert_ziel = figuren_werte.get(board[ziel[0]][ziel[1]], 0)
-    return wert_ziel - wert_start
+def score(board, start, target, color):
+    if board[target[0]][target[1]] != "0":
+        return SEE(board, target, color)
+    wert_start = piece_score.get(board[start[0]][start[1]], 0)
+    wert_target = piece_score.get(board[target[0]][target[1]], 0)
+    return wert_target - wert_start
 
-def SEE(board,ziel,farbe):
-    angreifer = []
-    for richtung in richtungen_gerade:
-        aktuelle_reihe = ziel[0]
-        aktuelle_spalte = ziel[1]
-        figur_gefunden = False
-        while not figur_gefunden:
+def SEE(board,target,color):
+    attackers = []
+    for richtung in direction_straight:
+        aktuelle_reihe = target[0]
+        aktuelle_spalte = target[1]
+        piece_gefunden = False
+        while not piece_gefunden:
             neue_reihe = aktuelle_reihe + richtung[0]
             neue_spalte = aktuelle_spalte + richtung[1]
             if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                figur_gefunden = True
+                piece_gefunden = True
                 continue
-            if farbe == "weiß":
+            if color == "white":
                 if board[neue_reihe][neue_spalte] == "-T" or board[neue_reihe][neue_spalte] == "-D":
-                    figur_gefunden = True
-                    angreifer.append((neue_reihe, neue_spalte))
+                    piece_gefunden = True
+                    attackers.append((neue_reihe, neue_spalte))
                 if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                    piece_gefunden = True
                     continue
             else:
                 if board[neue_reihe][neue_spalte] == "T" or board[neue_reihe][neue_spalte] == "D":
-                    figur_gefunden = True
-                    angreifer.append((neue_reihe, neue_spalte))
+                    piece_gefunden = True
+                    attackers.append((neue_reihe, neue_spalte))
                 if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                    piece_gefunden = True
                     continue
             aktuelle_reihe = neue_reihe
             aktuelle_spalte = neue_spalte
 
-    for richtung in richtungen_diagonal:
-        aktuelle_reihe = ziel[0]
-        aktuelle_spalte = ziel[1]
-        figur_gefunden = False
-        while not figur_gefunden:
+    for richtung in direction_diagonal:
+        aktuelle_reihe = target[0]
+        aktuelle_spalte = target[1]
+        piece_gefunden = False
+        while not piece_gefunden:
             neue_reihe = aktuelle_reihe + richtung[0]
             neue_spalte = aktuelle_spalte + richtung[1]
             if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                figur_gefunden = True
+                piece_gefunden = True
                 continue
-            if farbe == "weiß":
+            if color == "white":
                 if board[neue_reihe][neue_spalte] == "-L" or board[neue_reihe][neue_spalte] == "-D":
-                    figur_gefunden = True
-                    angreifer.append((neue_reihe, neue_spalte))
+                    piece_gefunden = True
+                    attackers.append((neue_reihe, neue_spalte))
                 if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                    piece_gefunden = True
                     continue
             else:
                 if board[neue_reihe][neue_spalte] == "L" or board[neue_reihe][neue_spalte] == "D":
-                    figur_gefunden = True
-                    angreifer.append((neue_reihe, neue_spalte))
+                    piece_gefunden = True
+                    attackers.append((neue_reihe, neue_spalte))
                 if not board[neue_reihe][neue_spalte] == "0":
-                    figur_gefunden = True
+                    piece_gefunden = True
                     continue
             aktuelle_reihe = neue_reihe
             aktuelle_spalte = neue_spalte
 
-    for richtung in richtungen_Springer:
-        neue_reihe = ziel[0] + richtung[0]
-        neue_spalte = ziel[1] + richtung[1]
+    for richtung in direction_Knight:
+        neue_reihe = target[0] + richtung[0]
+        neue_spalte = target[1] + richtung[1]
         if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
             continue
-        if farbe == "weiß":
+        if color == "white":
             if board[neue_reihe][neue_spalte] == "-S":
-                angreifer.append((neue_reihe, neue_spalte))
-        if farbe == "schwarz":
+                attackers.append((neue_reihe, neue_spalte))
+        if color == "black":
             if board[neue_reihe][neue_spalte] == "S":
-                angreifer.append((neue_reihe, neue_spalte))
+                attackers.append((neue_reihe, neue_spalte))
 
-    for richtung in richtungen_König:
-        neue_reihe = ziel[0] + richtung[0]
-        neue_spalte = ziel[1] + richtung[1]
+    for richtung in direction_King:
+        neue_reihe = target[0] + richtung[0]
+        neue_spalte = target[1] + richtung[1]
         if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
             continue
-        if farbe == "weiß":
+        if color == "white":
             if board[neue_reihe][neue_spalte] == "-K":
-                angreifer.append((neue_reihe, neue_spalte))
-        if farbe == "schwarz":
+                attackers.append((neue_reihe, neue_spalte))
+        if color == "black":
             if board[neue_reihe][neue_spalte] == "K":
-                angreifer.append((neue_reihe, neue_spalte))
-    if farbe == "weiß":
-        if ziel[0] - 1 >= 0 and ziel[1] + 1 <= 7:
-            if board[ziel[0] - 1][ziel[1] + 1] == "-B":
-                angreifer.append((ziel[0]-1, ziel[1]+1))
-        if ziel[0] - 1 >= 0 and ziel[1] - 1 >= 0:
-            if board[ziel[0] - 1][ziel[1] - 1] == "-B":
-                angreifer.append((ziel[0]-1, ziel[1]-1))
-    if farbe == "schwarz":
-        if ziel[0] + 1 <= 7 and ziel[1] + 1 <= 7:
-            if board[ziel[0] + 1][ziel[1] + 1] == "B":
-                angreifer.append((ziel[0]+1, ziel[1]+1))
-        if ziel[0] + 1 <= 7 and ziel[1] - 1 >= 0:
-            if board[ziel[0] + 1][ziel[1] - 1] == "B":
-                angreifer.append((ziel[0]+1, ziel[1]-1))
-    schwächster = None
-    schwächster_wert = 9999
-    for angriff in angreifer:
-        wert = figuren_werte.get(board[angriff[0]][angriff[1]],0)
-        if wert < schwächster_wert:
-            schwächster_wert = wert
-            schwächster = angriff
-    if schwächster == None:
+                attackers.append((neue_reihe, neue_spalte))
+    if color == "white":
+        if target[0] - 1 >= 0 and target[1] + 1 <= 7:
+            if board[target[0] - 1][target[1] + 1] == "-B":
+                attackers.append((target[0]-1, target[1]+1))
+        if target[0] - 1 >= 0 and target[1] - 1 >= 0:
+            if board[target[0] - 1][target[1] - 1] == "-B":
+                attackers.append((target[0]-1, target[1]-1))
+    if color == "black":
+        if target[0] + 1 <= 7 and target[1] + 1 <= 7:
+            if board[target[0] + 1][target[1] + 1] == "B":
+                attackers.append((target[0]+1, target[1]+1))
+        if target[0] + 1 <= 7 and target[1] - 1 >= 0:
+            if board[target[0] + 1][target[1] - 1] == "B":
+                attackers.append((target[0]+1, target[1]-1))
+    weakest = None
+    weakest_wert = 9999
+    for angriff in attackers:
+        wert = piece_score.get(board[angriff[0]][angriff[1]],0)
+        if wert < weakest_wert:
+            weakest_wert = wert
+            weakest = angriff
+    if weakest == None:
         return 0
-    geschlagen_wert = figuren_werte.get(board[ziel[0]][ziel[1]],0)
-    geschlagene_figur = board[ziel[0]][ziel[1]]
-    schlagende_figur = board[schwächster[0]][schwächster[1]]
-    board[ziel[0]][ziel[1]] = schlagende_figur
-    board[schwächster[0]][schwächster[1]] = "0"
-    SEE_ergebnis = SEE(board,ziel, "schwarz" if farbe == "weiß" else "weiß")
-    board[ziel[0]][ziel[1]] = geschlagene_figur
-    board[schwächster[0]][schwächster[1]] = schlagende_figur
-    return max(0, geschlagen_wert - SEE_ergebnis)
+    captured_value = piece_score.get(board[target[0]][target[1]],0)
+    captured_piece = board[target[0]][target[1]]
+    capturing_piece = board[weakest[0]][weakest[1]]
+    board[target[0]][target[1]] = capturing_piece
+    board[weakest[0]][weakest[1]] = "0"
+    see_result = SEE(board,target, "black" if color == "white" else "white")
+    board[target[0]][target[1]] = captured_piece
+    board[weakest[0]][weakest[1]] = capturing_piece
+    return max(0, captured_value - see_result)

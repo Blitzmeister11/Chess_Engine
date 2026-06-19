@@ -1,56 +1,56 @@
 import pygame
-from board import create_board, symbole
-from moves import mache_zug, im_schach
+from board import create_board, symbols
+from moves import make_move, in_check
 import moves
-from engine import wähle_zug, alle_züge, alle_züge_weiß
+from engine import choose_move, all_moves, all_moves_white
 board = create_board()
 pygame.init()
-fenster = pygame.display.set_mode((700,700), pygame.RESIZABLE)
-am_zug = "weiß"
-hell = (222,185,126)
-dunkel = (110,63,24)
+window = pygame.display.set_mode((700,700), pygame.RESIZABLE)
+turn = "white"
+light = (222,185,126)
+dark = (110,63,24)
 font = pygame.font.SysFont("segoeuisymbol", 60)
 font_klein = font_klein = pygame.font.SysFont("segoeuisymbol", 20)
-buchstaben = ["a", "b", "c", "d", "e", "f", "g", "h"]
-zahlen = ["1", "2", "3", "4", "5", "6", "7", "8"]
-ausgewählt = None
+letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
+numbers= ["1", "2", "3", "4", "5", "6", "7", "8"]
+selected = None
 pygame.display.set_caption("Chess Engine")
 icon = pygame.image.load(r"C:\Users\Malte\Downloads\ChessEngine.png")
 pygame.display.set_icon(icon)
-def zeichne_brett():
+def draw_board():
     for reihe in range(8):
         for spalte in range(8):
             if (reihe + spalte) % 2 == 0:
-                farbe = hell
+                color = light
             else:
-                farbe = dunkel
+                color = dark
             x = spalte * 80 + 30
             y = reihe * 80 + 30
-            pygame.draw.rect(fenster,farbe,(x,y,80,80))
-            if moves.letzter_zug is not None:
-                if (reihe, spalte) == moves.letzter_zug[0] or (reihe, spalte) == moves.letzter_zug[1]:
-                    pygame.draw.rect(fenster, (255, 255, 0), (x, y, 80, 80), 5)
+            pygame.draw.rect(window,color,(x,y,80,80))
+            if moves.last_move is not None:
+                if (reihe, spalte) == moves.last_move[0] or (reihe, spalte) == moves.last_move[1]:
+                    pygame.draw.rect(window, (255, 255, 0), (x, y, 80, 80), 5)
             feld = board[reihe][spalte]
-            symbol = symbole[feld]
+            symbol = symbols[feld]
             if feld !="0":
                 text = font.render(symbol, True, (0, 0, 0))
                 x = x + (80 - text.get_width()) // 2 + 7
                 y = y + (80 - text.get_height()) // 2
-                fenster.blit(text, (x, y))
+                window.blit(text, (x, y))
     for i in range(8):
         x = i * 80 + 35 + 60
         y = 640
-        text = font_klein.render(buchstaben[i], True, (0, 0, 0))
-        fenster.blit(text, (x, y))
+        text = font_klein.render(letters[i], True, (0, 0, 0))
+        window.blit(text, (x, y))
     for i in range(8):
         x = 30
         y =  i * 80 + 30
-        zahl = 8-i
-        text = font_klein.render(zahlen[zahl -1], True, (0, 0, 0))
-        fenster.blit(text, (x, y))
+        number = 8-i
+        text = font_klein.render(numbers[number -1], True, (0, 0, 0))
+        window.blit(text, (x, y))
 
 while True:
-    zeichne_brett()
+    draw_board()
     pygame.display.flip()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -58,59 +58,59 @@ while True:
             exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             event.pos
-            feld_reihe = (event.pos[1]-30) // 80
-            feld_spalte = (event.pos[0]-30) // 80
-            if 0 <= feld_reihe <= 7 and 0 <= feld_spalte <= 7:
-                if ausgewählt == None:
-                    start_feld = (feld_reihe, feld_spalte)
-                    if am_zug == "weiß":
-                        if "-" not in board[feld_reihe][feld_spalte] and not board[feld_reihe][feld_spalte] == "0":
-                            ausgewählt = start_feld
-                    if am_zug == "schwarz":
-                        if "-" in board[feld_reihe][feld_spalte] and not board[feld_reihe][feld_spalte] == "0":
-                            ausgewählt = start_feld
-                elif ausgewählt != None:
-                    ziel_feld = (feld_reihe, feld_spalte)
-                    ausgewählt = None
-                    erfolg = mache_zug(board,start_feld, ziel_feld)
+            square_row = (event.pos[1]-30) // 80
+            square_col = (event.pos[0]-30) // 80
+            if 0 <= square_row <= 7 and 0 <= square_col <= 7:
+                if selected == None:
+                    start_square = (square_row, square_col)
+                    if turn == "white":
+                        if "-" not in board[square_row][square_col] and not board[square_row][square_col] == "0":
+                            selected = start_square
+                    if turn == "black":
+                        if "-" in board[square_row][square_col] and not board[square_row][square_col] == "0":
+                            selected = start_square
+                elif selected != None:
+                    end_square = (square_row, square_col)
+                    selected = None
+                    erfolg = make_move(board,start_square, end_square)
                     if erfolg == True:
                         erfolg = False
-                        if am_zug == "weiß":
-                            am_zug = "schwarz"
-                            antwort_züge = alle_züge(board)
-                            schach = im_schach(board, "schwarz")
-                            if antwort_züge == [] and schach == True:
-                                print("Schachmatt")
+                        if turn == "white":
+                            turn = "black"
+                            answer_moves = all_moves(board)
+                            schach = in_check(board, "black")
+                            if answer_moves == [] and schach == True:
+                                print("Checkmate")
                                 print("Weiß hat gewonnen")
                                 pygame.quit()
-                            elif antwort_züge == [] and schach == False:
+                            elif answer_moves == [] and schach == False:
                                 print("Patt")
                                 print("Unentschieden")
                                 pygame.quit()
-                        elif am_zug == "schwarz":
-                            am_zug = "weiß"
-                            antwort_züge = alle_züge_weiß(board)
-                            schach = im_schach(board, "weiß")
-                            if antwort_züge == [] and schach == True:
-                                print("Schachmatt")
+                        elif turn == "black":
+                            turn = "white"
+                            answer_moves = all_moves_white(board)
+                            schach = in_check(board, "white")
+                            if answer_moves == [] and schach == True:
+                                print("Checkmate")
                                 print("Schwarz hat gewonnen")
                                 pygame.quit()
-                            elif antwort_züge == [] and schach == False:
+                            elif answer_moves == [] and schach == False:
                                 print("Patt")
                                 print("Unentschieden")
                                 pygame.quit()
-                        if am_zug == "schwarz":
-                            zeichne_brett()
+                        if turn == "black":
+                            draw_board()
                             pygame.display.flip()
-                            engine_zug = wähle_zug(board)
-                            if engine_zug is not None:
-                                mache_zug(board, engine_zug[0], engine_zug[1])
-                                am_zug = "weiß"
-                                antwort_züge = alle_züge_weiß(board)
-                                schach = im_schach(board, "weiß")
-                                if antwort_züge == [] and schach == True:
-                                    print("Schachmatt")
+                            engine_move = choose_move(board)
+                            if engine_move is not None:
+                                make_move(board, engine_move[0], engine_move[1])
+                                turn = "white"
+                                answer_moves = all_moves_white(board)
+                                schach = in_check(board, "white")
+                                if answer_moves == [] and schach == True:
+                                    print("Checkmate")
                                     print("Schwarz hat gewonnen")
-                                elif antwort_züge == [] and schach == False:
+                                elif answer_moves == [] and schach == False:
                                     print("Patt")
                                     print("Unentschieden")
