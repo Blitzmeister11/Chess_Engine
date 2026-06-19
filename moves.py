@@ -242,12 +242,12 @@ def pawn_moves(board, square, color, last_move):
                 new_collum = square[1] + Zug[1]
                 if board[new_row][new_collum] == "0":
                     square_pawn.append((new_row, new_collum))
-                if square[1] + 1 <= 7 and "-" in board[square[0] - 1][square[1] + 1]:
+                if square[0] - 1 >= 0 and square[1] + 1 <= 7 and "-" in board[square[0] - 1][square[1] + 1]:
                     new_row = square[0] - 1
                     new_collum = square[1] + 1
                     if new_collum <= 7:
                         square_pawn.append((new_row, new_collum))
-                if square[1] - 1 >= 0 and "-" in board[square[0] - 1][square[1] - 1]:
+                if square[0] - 1 >= 0 and square[1] - 1 >= 0 and "-" in board[square[0] - 1][square[1] - 1]:
                     new_row = square[0] - 1
                     new_collum = square[1] - 1
                     if new_collum >= 0:
@@ -268,33 +268,32 @@ def pawn_moves(board, square, color, last_move):
     if color == "black":
         for Zug in movespawnblack:
             if board[square[0]][square[1]] == "-B":
+
                 new_row = square[0] + Zug[0]
-                new_collum = square[1] + Zug[1]
-                if board[new_row][new_collum] == "0":
-                    square_pawn.append((new_row, new_collum))
-                if square[1] + 1 <= 7 and "-" not in board[square[0] + 1][square[1] + 1] and not board[square[0] + 1][square[1] + 1] == "0":
-                        new_row = square[0] + 1
-                        new_collum = square[1] + 1
-                        if new_collum <= 7:
-                            square_pawn.append((new_row, new_collum))
-                if square[1] - 1 >= 0 and "-" not in board[square[0] + 1][square[1] - 1] and not board[square[0] + 1][square[1] - 1] == "0":
-                    new_row = square[0] + 1
-                    new_collum = square[1] - 1
-                    if new_collum >= 0:
-                        square_pawn.append((new_row, new_collum))
+                new_col = square[1] + Zug[1]
+                if 0 <= new_row <= 7 and 0 <= new_col <= 7:
+                    if board[new_row][new_col] == "0":
+                        square_pawn.append((new_row, new_col))
+
+                if square[0] + 1 <= 7 and square[1] + 1 <= 7:
+                    if "-" not in board[square[0] + 1][square[1] + 1] and board[square[0] + 1][square[1] + 1] != "0":
+                        square_pawn.append((square[0] + 1, square[1] + 1))
+
+                if square[0] + 1 <= 7 and square[1] - 1 >= 0:
+                    if "-" not in board[square[0] + 1][square[1] - 1] and board[square[0] + 1][square[1] - 1] != "0":
+                        square_pawn.append((square[0] + 1, square[1] - 1))
+
                 if square[0] == 1:
                     if board[square[0] + 1][square[1]] == "0" and board[square[0] + 2][square[1]] == "0":
-                        new_row = square[0] + 2
-                        new_collum = square[1] + Zug[1]
-                        square_pawn.append((new_row, new_collum))
+                        square_pawn.append((square[0] + 2, square[1]))
+
                 if last_move is not None and last_move[2] == "B" and square[0] == 4:
                     if last_move[0][0] == 6 and last_move[1][0] == 4:
-                        collum_collum = last_move[1][1]
-                        if collum_collum == square[1] + 1:
-                            square_pawn.append((5, collum_collum))
-                        if collum_collum == square[1] - 1:
-                            square_pawn.append((5, collum_collum))
-
+                        col_last = last_move[1][1]
+                        if col_last == square[1] + 1:
+                            square_pawn.append((5, col_last))
+                        if col_last == square[1] - 1:
+                            square_pawn.append((5, col_last))
 
     return square_pawn
 

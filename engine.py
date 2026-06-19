@@ -1,6 +1,7 @@
 from board import create_board
 from moves import *
 import moves
+import time
 piece_square_table_knight = [
     [-50,-40,-30,-30,-30,-30,-40,-50],
     [-40,-20,+0,+0,+0,+0,-20,-40],
@@ -76,6 +77,8 @@ piece_score = {
         "-K":0
 }
 transsquare_table = {}
+SEARCH_START = 0
+SEARCH_LIMIT = 0
 board = create_board()
 def all_moves(board):
     all_moves = []
@@ -110,8 +113,8 @@ def all_moves(board):
         target_inhalt = board[target[0]][target[1]]
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
-        möglich = in_check(board, "black")
-        if möglich == True:
+        possible = in_check(board, "black")
+        if possible == True:
             all_moves.remove(zug)
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
@@ -152,8 +155,8 @@ def all_moves_white(board):
         target_inhalt = board[target[0]][target[1]]
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
-        möglich = in_check(board, "white")
-        if möglich == True:
+        possible = in_check(board, "white")
+        if possible == True:
             all_moves.remove(zug)
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
@@ -202,22 +205,103 @@ def bewerte_material(board):
 
     return material
 
-def choose_move(board):
+def choose_move(board, depth=5):
     capture_moves = []
     quiet_moves = []
-    tiefe = 5
     alpha = -1000
     beta = 1000
+
+    # Rochade- und last_move-Status sichern
     old_white_short = moves.white_short
     old_white_long = moves.white_long
     old_black_short = moves.black_short
     old_black_long = moves.black_long
     prev_last_move = moves.last_move
+
     moves_list = all_moves(board)
-    if moves_list == []:
+    if not moves_list:
         return None
-    best_move = []
+
+    # Captures vor Quiet Moves
+    for zug in moves_list:
+        start, target = zug
+        if board[target[0]][target[1]] != "0":
+            capture_moves.append(zug)
+        else:
+            quiet_moves.append(zug)
+    moves_list = capture_moves + quiet_moves
+
+    # Move Ordering mit SEE
+    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1], "black"), reverse=True)
+
+    best_move = None
     best_score = -9999999
+
+    for zug in moves_list:
+        start, target = zug
+        piece = board[start[0]][start[1]]
+        target_inhalt = board[target[0]][target[1]]
+
+        # Zug ausführen
+        board[target[0]][target[1]] = piece
+        board[start[0]][start[1]] = "0"
+
+        evaluation = negamax(board, depth - 1, "white", -beta, -alpha)
+        if evaluation is None:
+            # Zeit abgelaufen
+            # Zustand zurücksetzen und abbrechen
+            board[start[0]][start[1]] = piece
+            board[target[0]][target[1]] = target_inhalt
+            moves.white_short = old_white_short
+            moves.white_long = old_white_long
+            moves.black_short = old_black_short
+            moves.black_long = old_black_long
+            moves.last_move = prev_last_move
+            return None
+
+        evaluation = -evaluation
+
+        if evaluation > best_score:
+            best_score = evaluation
+            best_move = zug
+            alpha = best_score
+
+        # Zustand zurücksetzen
+        board[start[0]][start[1]] = piece
+        board[target[0]][target[1]] = target_inhalt
+        moves.white_short = old_white_short
+        moves.white_long = old_white_long
+        moves.black_short = old_black_short
+        moves.black_long = old_black_long
+        moves.last_move = prev_last_move
+
+    return best_move
+
+
+
+def negamax(board, tiefe, color, alpha, beta):
+    if tiefe == 0:
+        return quiescence(board, alpha, beta, color)
+    if time.time() - SEARCH_START > SEARCH_LIMIT:
+        return alpha
+    if color == "black":
+        moves_list = all_moves(board)
+    else:
+        moves_list = all_moves_white(board)
+
+    if moves_list == []:
+        if in_check(board, color) == True:
+            return -1000 - tiefe
+        return 0
+
+    prev_last_move = moves.last_move
+    old_white_short = moves.white_short
+    old_white_long = moves.white_long
+    old_black_short = moves.black_short
+    old_black_long = moves.black_long
+
+    capture_moves = []
+    quiet_moves = []
     for zug in moves_list:
         start, target = zug
         if not board[target[0]][target[1]] == "0":
@@ -225,21 +309,18 @@ def choose_move(board):
         else:
             quiet_moves.append(zug)
     moves_list = capture_moves + quiet_moves
-    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1], "black"), reverse=True)
+
+    best_score = -9999999
     for zug in moves_list:
         start, target = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
-        evaluation = minimax(board, tiefe -1, False, alpha, beta)
-        if evaluation > best_score:
-            best_score = evaluation
-            best_move = []
-            best_move.append(zug)
-            alpha = best_score
-        elif evaluation == best_score:
-            best_move.append(zug)
+
+        next_color = "white" if color == "black" else "black"
+        score_result = -negamax(board, tiefe - 1, next_color, -beta, -alpha)
+
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
         moves.white_short = old_white_short
@@ -247,51 +328,51 @@ def choose_move(board):
         moves.black_short = old_black_short
         moves.black_long = old_black_long
         moves.last_move = prev_last_move
-    return best_move[0]
 
-
-def minimax(board, tiefe, is_maximizing, alpha, beta):
-    if tiefe == 0:
-        return bewerte_material(board)
-    key = (tuple(tuple(reihe) for reihe in board), tiefe)
-    if key in transsquare_table:
-        stored_value, stored_type = transsquare_table[key]
-        if stored_type == "exakt":
-            return stored_value
-        if stored_type == "untere_grenze":
-            alpha = max(alpha, stored_value)
-        if stored_type == "obere_grenze":
-            beta = min(beta, stored_value)
+        if score_result > best_score:
+            best_score = score_result
+        if score_result > alpha:
+            alpha = score_result
         if alpha >= beta:
-            return stored_value
-    scores = []
-    if is_maximizing == True:
+            break
+
+    return best_score
+
+
+def quiescence(board, alpha, beta, color, depth = 10):
+    if time.time() - SEARCH_START > SEARCH_LIMIT:
+        return alpha
+    stand_pat = bewerte_material(board) if color == "black" else -bewerte_material(board)
+    if depth <= 0:
+        return stand_pat
+    if stand_pat >= beta:
+        return beta
+    if alpha < stand_pat:
+        alpha = stand_pat
+
+    if color == "black":
         moves_list = all_moves(board)
-    if is_maximizing == False:
+    else:
         moves_list = all_moves_white(board)
-    if moves_list == []:
-        if in_check(board, "white") == True and is_maximizing == False:
-            return 1000 + tiefe
-        if in_check(board, "black") == True and is_maximizing == True:
-            return -1000 - tiefe
-        return 0
+
+    capture_moves = [zug for zug in moves_list if board[zug[1][0]][zug[1][1]] != "0"]
+
     prev_last_move = moves.last_move
     old_white_short = moves.white_short
     old_white_long = moves.white_long
     old_black_short = moves.black_short
     old_black_long = moves.black_long
-    for zug in moves_list:
+
+    for zug in capture_moves:
         start, target = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
-        ergebnis = minimax(board, tiefe - 1, not is_maximizing, alpha, beta)
-        scores.append(ergebnis)
-        if is_maximizing == True:
-            alpha = max(alpha, ergebnis)
-        if is_maximizing == False:
-            beta = min(beta, ergebnis)
+
+        next_color = "white" if color == "black" else "black"
+        score_result = -quiescence(board, -beta, -alpha, next_color, depth - 1)
+
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
         moves.white_short = old_white_short
@@ -299,16 +380,13 @@ def minimax(board, tiefe, is_maximizing, alpha, beta):
         moves.black_short = old_black_short
         moves.black_long = old_black_long
         moves.last_move = prev_last_move
-        if alpha >= beta:
-            break
-    ergebnis = max(scores) if is_maximizing else min(scores)
-    if ergebnis <= alpha:
-        transsquare_table[key] = (ergebnis, "obere_grenze")
-    elif ergebnis >= beta:
-        transsquare_table[key] = (ergebnis, "untere_grenze")
-    else:
-        transsquare_table[key] = (ergebnis, "exakt")
-    return ergebnis
+
+        if score_result >= beta:
+            return beta
+        if score_result > alpha:
+            alpha = score_result
+
+    return alpha
 
 def score(board, start, target, color):
     if board[target[0]][target[1]] != "0":
@@ -428,3 +506,28 @@ def SEE(board,target,color):
     board[target[0]][target[1]] = captured_piece
     board[weakest[0]][weakest[1]] = capturing_piece
     return max(0, captured_value - see_result)
+
+def choose_move_iterative(board, max_depth=99, time_limit=180):
+    global SEARCH_START, SEARCH_LIMIT
+    SEARCH_START = time.time()
+    SEARCH_LIMIT = time_limit
+
+    best_move_overall = None
+    last_depth_time = 0.01
+
+    for depth in range(1, max_depth + 1):
+        start = time.time()
+        result = choose_move(board, depth)
+        if result is None:
+            break
+        best_move_overall = result
+        depth_time = time.time() - start
+        if time.time() - SEARCH_START > SEARCH_LIMIT:
+            break
+        if depth_time > last_depth_time * 2.5:
+            break
+        if depth >= 3 and depth_time < 0.01:
+            break
+        last_depth_time = depth_time
+
+    return best_move_overall
