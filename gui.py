@@ -83,10 +83,12 @@ while True:
                                 print("Checkmate")
                                 print("Weiß hat gewonnen")
                                 pygame.quit()
+                                exit()
                             elif answer_moves == [] and schach == False:
                                 print("Patt")
                                 print("Unentschieden")
                                 pygame.quit()
+                                exit()
                         elif turn == "black":
                             turn = "white"
                             answer_moves = all_moves_white(board)
@@ -95,14 +97,16 @@ while True:
                                 print("Checkmate")
                                 print("Schwarz hat gewonnen")
                                 pygame.quit()
+                                exit()
                             elif answer_moves == [] and schach == False:
                                 print("Patt")
                                 print("Unentschieden")
                                 pygame.quit()
+                                exit()
                         if turn == "black":
                             draw_board()
                             pygame.display.flip()
-                            engine_move = choose_move_iterative(board, time_limit=180)
+                            engine_move = choose_move_iterative(board, "black", time_limit=180)
                             if engine_move is not None:
                                 make_move(board, engine_move[0], engine_move[1])
                                 turn = "white"
@@ -111,6 +115,10 @@ while True:
                                 if answer_moves == [] and schach == True:
                                     print("Checkmate")
                                     print("Schwarz hat gewonnen")
+                                    pygame.quit()
+                                    exit()
                                 elif answer_moves == [] and schach == False:
                                     print("Patt")
                                     print("Unentschieden")
+                                    pygame.quit()
+                                exit()

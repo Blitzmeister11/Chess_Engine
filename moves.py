@@ -297,11 +297,16 @@ def pawn_moves(board, square, color, last_move):
 
     return square_pawn
 
-def make_move(board,start_square,end_square):
+def make_move(board,start_square,end_square, promotion_piece = None):
     global white_short, white_long, black_short, black_long
     global white_short_execute, white_long_execute
     global black_short_execute, black_long_execute
     global last_move
+
+    white_short_execute = False
+    white_long_execute = False
+    black_short_execute = False
+    black_long_execute = False
 
     square = []
     erfolg = False
@@ -404,7 +409,10 @@ def make_move(board,start_square,end_square):
                 erfolg = True
             if erfolg == True:
                 if board[0][end_square[1]] == "B":
-                    inputPromotion = promotion_auswahl()
+                    if promotion_piece is not None:
+                        inputPromotion = promotion_piece
+                    else:
+                        inputPromotion = promotion_auswahl()
                     if inputPromotion == "Queen":
                         board[0][end_square[1]] = "D"
                     if inputPromotion == "rook":
@@ -426,6 +434,14 @@ def make_move(board,start_square,end_square):
                     if color == "black":
                         black_short = False
                         black_long = False
+                if start_square == (7, 0):
+                    white_long = False
+                if start_square == (7, 7):
+                    white_short = False
+                if start_square == (0, 0):
+                    black_long = False
+                if start_square == (0, 7):
+                    black_short = False
                 last_move = (start_square, end_square, piece)
     return erfolg
 

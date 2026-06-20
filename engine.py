@@ -205,24 +205,22 @@ def bewerte_material(board):
 
     return material
 
-def choose_move(board, depth=5):
+def choose_move(board, color, depth=5):
     capture_moves = []
     quiet_moves = []
     alpha = -1000
     beta = 1000
 
-    # Rochade- und last_move-Status sichern
     old_white_short = moves.white_short
     old_white_long = moves.white_long
     old_black_short = moves.black_short
     old_black_long = moves.black_long
     prev_last_move = moves.last_move
 
-    moves_list = all_moves(board)
+    moves_list = all_moves(board) if color == "black" else all_moves_white(board)
     if not moves_list:
         return None
 
-    # Captures vor Quiet Moves
     for zug in moves_list:
         start, target = zug
         if board[target[0]][target[1]] != "0":
@@ -231,8 +229,7 @@ def choose_move(board, depth=5):
             quiet_moves.append(zug)
     moves_list = capture_moves + quiet_moves
 
-    # Move Ordering mit SEE
-    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1], "black"), reverse=True)
+    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1], color), reverse=True)
 
     best_move = None
     best_score = -9999999
@@ -242,23 +239,11 @@ def choose_move(board, depth=5):
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
 
-        # Zug ausführen
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
 
-        evaluation = negamax(board, depth - 1, "white", -beta, -alpha)
-        if evaluation is None:
-            # Zeit abgelaufen
-            # Zustand zurücksetzen und abbrechen
-            board[start[0]][start[1]] = piece
-            board[target[0]][target[1]] = target_inhalt
-            moves.white_short = old_white_short
-            moves.white_long = old_white_long
-            moves.black_short = old_black_short
-            moves.black_long = old_black_long
-            moves.last_move = prev_last_move
-            return None
-
+        next_color = "white" if color == "black" else "black"
+        evaluation = negamax(board, depth - 1, next_color, -beta, -alpha)
         evaluation = -evaluation
 
         if evaluation > best_score:
@@ -266,7 +251,6 @@ def choose_move(board, depth=5):
             best_move = zug
             alpha = best_score
 
-        # Zustand zurücksetzen
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
         moves.white_short = old_white_short
@@ -507,7 +491,7 @@ def SEE(board,target,color):
     board[weakest[0]][weakest[1]] = capturing_piece
     return max(0, captured_value - see_result)
 
-def choose_move_iterative(board, max_depth=99, time_limit=180):
+def choose_move_iterative(board, color, max_depth=99, time_limit=180):
     global SEARCH_START, SEARCH_LIMIT
     SEARCH_START = time.time()
     SEARCH_LIMIT = time_limit
@@ -517,7 +501,7 @@ def choose_move_iterative(board, max_depth=99, time_limit=180):
 
     for depth in range(1, max_depth + 1):
         start = time.time()
-        result = choose_move(board, depth)
+        result = choose_move(board, color, depth)
         if result is None:
             break
         best_move_overall = result
