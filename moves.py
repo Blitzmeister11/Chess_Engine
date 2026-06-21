@@ -1,4 +1,5 @@
 from tkinter import *
+import zobrist
 
 white_short = True
 white_long = True
@@ -9,6 +10,9 @@ white_long_execute = False
 black_short_execute = False
 black_long_execute = False
 last_move = None
+current_hash = None
+position_history = {}
+halfmove_clock = 0
 
 direction_straight = [
     (+1, +0),
@@ -302,6 +306,7 @@ def make_move(board,start_square,end_square, promotion_piece = None):
     global white_short_execute, white_long_execute
     global black_short_execute, black_long_execute
     global last_move
+    global current_hash, position_history, halfmove_clock
 
     white_short_execute = False
     white_long_execute = False
@@ -442,6 +447,13 @@ def make_move(board,start_square,end_square, promotion_piece = None):
                     black_long = False
                 if start_square == (0, 7):
                     black_short = False
+                next_color = "black" if color == "white" else "white"
+                if piece in ("B", "-B") or target_inhalt != "0":
+                    halfmove_clock = 0
+                else:
+                    halfmove_clock += 1
+                current_hash = zobrist.compute_hash(board, next_color)
+                position_history[current_hash] = position_history.get(current_hash, 0) + 1
                 last_move = (start_square, end_square, piece)
     return erfolg
 

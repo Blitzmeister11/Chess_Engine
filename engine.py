@@ -1,5 +1,6 @@
 from board import create_board
 from moves import *
+import zobrist
 import moves
 import time
 piece_square_table_knight = [
@@ -217,6 +218,10 @@ def choose_move(board, color, depth=5):
     old_black_long = moves.black_long
     prev_last_move = moves.last_move
 
+    zobrist_hash = moves.current_hash
+    history = dict(moves.position_history)
+    halfmove_clock = moves.halfmove_clock
+
     moves_list = all_moves(board) if color == "black" else all_moves_white(board)
     if not moves_list:
         return None
@@ -242,9 +247,22 @@ def choose_move(board, color, depth=5):
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
 
+        new_hash = zobrist_hash
+        new_hash ^= zobrist.ZOBRIST_TABLE[(start[0], start[1], piece)]
+        if target_inhalt != "0":
+            new_hash ^= zobrist.ZOBRIST_TABLE[(target[0], target[1], target_inhalt)]
+        new_hash ^= zobrist.ZOBRIST_TABLE[(target[0], target[1], piece)]
+        new_hash ^= zobrist.ZOBRIST_TURN
+        new_halfmove = 0 if piece in ("B", "-B") or target_inhalt != "0" else halfmove_clock + 1
+        history[new_hash] = history.get(new_hash, 0) + 1
+
         next_color = "white" if color == "black" else "black"
-        evaluation = negamax(board, depth - 1, next_color, -beta, -alpha)
+        evaluation = negamax(board, depth - 1, next_color, -beta, -alpha, new_hash, history, new_halfmove)
         evaluation = -evaluation
+
+        history[new_hash] -= 1
+        if history[new_hash] == 0:
+            del history[new_hash]
 
         if evaluation > best_score:
             best_score = evaluation
@@ -263,7 +281,11 @@ def choose_move(board, color, depth=5):
 
 
 
-def negamax(board, tiefe, color, alpha, beta):
+def negamax(board, tiefe, color, alpha, beta, zobrist_hash, history, halfmove_clock):
+    if halfmove_clock >= 100:
+        return 0
+    if history.get(zobrist_hash, 0) >= 3:
+        return 0
     if tiefe == 0:
         return quiescence(board, alpha, beta, color)
     if time.time() - SEARCH_START > SEARCH_LIMIT:
@@ -302,8 +324,22 @@ def negamax(board, tiefe, color, alpha, beta):
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
 
+        new_hash = zobrist_hash
+        new_hash ^= zobrist.ZOBRIST_TABLE[(start[0], start[1], piece)]
+        if target_inhalt != "0":
+            new_hash ^= zobrist.ZOBRIST_TABLE[(target[0], target[1], target_inhalt)]
+        new_hash ^= zobrist.ZOBRIST_TABLE[(target[0], target[1], piece)]
+        new_hash ^= zobrist.ZOBRIST_TURN
+
+        new_halfmove = 0 if piece in ("B", "-B") or target_inhalt != "0" else halfmove_clock + 1
+        history[new_hash] = history.get(new_hash, 0) + 1
+
         next_color = "white" if color == "black" else "black"
-        score_result = -negamax(board, tiefe - 1, next_color, -beta, -alpha)
+        score_result = -negamax(board, tiefe - 1, next_color, -beta, -alpha, new_hash, history, new_halfmove)
+
+        history[new_hash] -= 1
+        if history[new_hash] == 0:
+            del history[new_hash]
 
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt

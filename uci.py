@@ -3,6 +3,7 @@ from board import create_board
 from moves import make_move
 from engine import choose_move_iterative
 import moves
+import zobrist
 current_color = "white"
 board = create_board()
 def uci_to_square(uci_str):
@@ -43,6 +44,9 @@ while True:
         moves.black_short = True
         moves.black_long = True
         moves.last_move = None
+        moves.current_hash = zobrist.compute_hash(board, "white")
+        moves.position_history = {moves.current_hash: 1}
+        moves.halfmove_clock = 0
         import engine
         engine.transsquare_table.clear()
         if "moves" in parts:
@@ -55,5 +59,11 @@ while True:
     elif command.startswith("go"):
         move = choose_move_iterative(board, current_color)
         if move is not None:
-            uci_move = square_to_uci(move[0]) + square_to_uci(move[1])
+            start_square, end_square = move
+            piece = board[start_square[0]][start_square[1]]
+            uci_move = square_to_uci(start_square) + square_to_uci(end_square)
+            if piece == "B" and end_square[0] == 0:
+                uci_move += "q"
+            if piece == "-B" and end_square[0] == 7:
+                uci_move += "q"
             print(f"bestmove {uci_move}", flush=True)
