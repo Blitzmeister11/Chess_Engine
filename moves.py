@@ -572,6 +572,7 @@ def in_check(board,color):
                 king_attacked = True
     return king_attacked
 
+
 def rochade_schach(board,square,color):
     king_attacked = False
     for direction in direction_straight:

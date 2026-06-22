@@ -517,6 +517,7 @@ def SEE(board, target):
     return captured_value - see_result
 
 
+
 def choose_move_iterative(board, color, max_depth=99, time_limit=180):
     global SEARCH_START, SEARCH_LIMIT
     SEARCH_START = time.time()
