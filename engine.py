@@ -201,8 +201,10 @@ def bewerte_material(board):
                 material += piece_square_table_queen[7 - row][col] / 20
             if board[row][col] == "K":
                 material -= piece_square_table_king[row][col] / 20
+                white_king_pos = (row, col)
             if board[row][col] == "-K":
                 material += piece_square_table_king[7 - row][col] / 20
+                black_king_pos = (row, col)
 
     return material
 
