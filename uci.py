@@ -59,7 +59,7 @@ while True:
     elif command.startswith("go"):
         move = choose_move_iterative(board, current_color)
         if move is not None:
-            start_square, end_square = move
+            start_square, end_square, promo = move
             piece = board[start_square[0]][start_square[1]]
             uci_move = square_to_uci(start_square) + square_to_uci(end_square)
             if piece == "B" and end_square[0] == 0:

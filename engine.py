@@ -114,7 +114,7 @@ def all_moves(board):
                     felder = king_moves(board, square)
                 for target in felder:
                     piece = board[row][col]
-                    if piece == "B" and target[0] == 0:
+                    if piece == "B" and target[0] == 7:
                         all_moves.append((square, target, "D"))
                         all_moves.append((square, target, "T"))
                         all_moves.append((square, target, "L"))
@@ -302,7 +302,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
     if depth == 0:
         return quiescence(board, alpha, beta, color)
     if time.time() - SEARCH_START > SEARCH_LIMIT:
-        return alpha
+        raise TimeoutError
 
     moves_list = all_moves(board) if color == "black" else all_moves_white(board)
 
@@ -370,7 +370,7 @@ def quiescence(board, alpha, beta, color, depth=10):
             if SEE(board, target) >= 0:
                 capture_moves.append(zug)
 
-    for start, target in capture_moves:
+    for start, target, promo in capture_moves:
         make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
@@ -533,10 +533,6 @@ def choose_move_iterative(board, color, max_depth=99, time_limit=180):
         best_move_overall = result
         depth_time = time.time() - start
         if time.time() - SEARCH_START > SEARCH_LIMIT:
-            break
-        if depth_time > last_depth_time * 2.5:
-            break
-        if depth >= 3 and depth_time < 0.01:
             break
         last_depth_time = depth_time
 
