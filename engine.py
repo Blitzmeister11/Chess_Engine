@@ -264,8 +264,8 @@ def choose_move(board, color, depth=5):
     best_move = None
     best_score = -9999999
 
-    for start, target in moves_list:
-        make_move_search(board, start, target)
+    for start, target, promo in moves_list:
+        make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
         evaluation = -negamax(
@@ -313,7 +313,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
     capture_moves = []
     quiet_moves = []
-    for start, target in moves_list:
+    for start, target, promo in moves_list:
         if board[target[0]][target[1]] != "0":
             capture_moves.append((start, target))
         else:
@@ -322,8 +322,8 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
     best_score = -9999999
 
-    for start, target in moves_list:
-        make_move_search(board, start, target)
+    for start, target, promo in moves_list:
+        make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
         score_result = -negamax(
@@ -371,7 +371,7 @@ def quiescence(board, alpha, beta, color, depth=10):
                 capture_moves.append(zug)
 
     for start, target in capture_moves:
-        make_move_search(board, start, target)
+        make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
         score_result = -quiescence(board, -beta, -alpha, next_color, depth - 1)
@@ -586,7 +586,7 @@ def make_move_search(board, start, target, promotion_piece=None):
     elif piece == "-B" and target[0] == 7:
         promo = "-D"
     else:
-        promo = None
+        promo = promotion_piece
 
     make_move(board, start, target, promotion_piece=promo)
 
