@@ -113,7 +113,20 @@ def all_moves(board):
                     square = (row, col)
                     felder = king_moves(board, square)
                 for target in felder:
-                    all_moves.append((square, target))
+                    piece = board[row][col]
+                    if piece == "B" and target[0] == 0:
+                        all_moves.append((square, target, "D"))
+                        all_moves.append((square, target, "T"))
+                        all_moves.append((square, target, "L"))
+                        all_moves.append((square, target, "S"))
+                    elif piece == "-B" and target[0] == 7:
+                        all_moves.append((square, target, "-D"))
+                        all_moves.append((square, target, "-T"))
+                        all_moves.append((square, target, "-L"))
+                        all_moves.append((square, target, "-S"))
+                    else:
+                        all_moves.append((square, target, None))
+
     prev_last_move = moves.last_move
     for zug in all_moves[:]:
         start, target = zug
@@ -155,7 +168,20 @@ def all_moves_white(board):
                     square = (row, col)
                     felder = king_moves(board, square)
                 for target in felder:
-                    all_moves.append((square, target))
+                    piece = board[row][col]
+                    if piece == "B" and target[0] == 0:
+                        all_moves.append((square, target, "D"))
+                        all_moves.append((square, target, "T"))
+                        all_moves.append((square, target, "L"))
+                        all_moves.append((square, target, "S"))
+                    elif piece == "-B" and target[0] == 7:
+                        all_moves.append((square, target, "-D"))
+                        all_moves.append((square, target, "-T"))
+                        all_moves.append((square, target, "-L"))
+                        all_moves.append((square, target, "-S"))
+                    else:
+                        all_moves.append((square, target, None))
+
     prev_last_move = moves.last_move
     for zug in all_moves[:]:
         start, target = zug
@@ -555,7 +581,14 @@ def make_move_search(board, start, target, promotion_piece=None):
 
     move_stack.append(state)
 
-    make_move(board, start, target, promotion_piece=promotion_piece)
+    if piece == "B" and target[0] == 0:
+        promo = "D"
+    elif piece == "-B" and target[0] == 7:
+        promo = "-D"
+    else:
+        promo = None
+
+    make_move(board, start, target, promotion_piece=promo)
 
 
 def unmake_move_search(board):
