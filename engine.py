@@ -214,11 +214,7 @@ def choose_move(board, color, depth=5):
     alpha = -1000
     beta = 1000
 
-    old_white_short = moves.white_short
-    old_white_long = moves.white_long
-    old_black_short = moves.black_short
-    old_black_long = moves.black_long
-    prev_last_move = moves.last_move
+    old_flags = (moves.white_short, moves.white_long, moves.black_short, moves.black_long, moves.last_move)
 
     zobrist_hash = moves.current_hash
     history = dict(moves.position_history)
@@ -236,7 +232,7 @@ def choose_move(board, color, depth=5):
             quiet_moves.append(zug)
     moves_list = capture_moves + quiet_moves
 
-    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1], color), reverse=True)
+    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1]), reverse=True)
 
     best_move = None
     best_score = -9999999
@@ -273,17 +269,18 @@ def choose_move(board, color, depth=5):
 
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
-        moves.white_short = old_white_short
-        moves.white_long = old_white_long
-        moves.black_short = old_black_short
-        moves.black_long = old_black_long
-        moves.last_move = prev_last_move
+        (moves.white_short, moves.white_long, moves.black_short, moves.black_long, moves.last_move) = old_flags
 
     return best_move
 
 
 
 def negamax(board, tiefe, color, alpha, beta, zobrist_hash, history, halfmove_clock):
+    if zobrist_hash in transsquare_table:
+        d, v = transsquare_table[zobrist_hash]
+        if d >= tiefe:
+            return v
+
     if halfmove_clock >= 100:
         return 0
     if history.get(zobrist_hash, 0) >= 3:
@@ -302,11 +299,7 @@ def negamax(board, tiefe, color, alpha, beta, zobrist_hash, history, halfmove_cl
             return -1000 - tiefe
         return 0
 
-    prev_last_move = moves.last_move
-    old_white_short = moves.white_short
-    old_white_long = moves.white_long
-    old_black_short = moves.black_short
-    old_black_long = moves.black_long
+    old_flags = (moves.white_short, moves.white_long, moves.black_short, moves.black_long, moves.last_move)
 
     capture_moves = []
     quiet_moves = []
@@ -345,11 +338,7 @@ def negamax(board, tiefe, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
-        moves.white_short = old_white_short
-        moves.white_long = old_white_long
-        moves.black_short = old_black_short
-        moves.black_long = old_black_long
-        moves.last_move = prev_last_move
+        (moves.white_short, moves.white_long, moves.black_short, moves.black_long, moves.last_move) = old_flags
 
         if score_result > best_score:
             best_score = score_result
@@ -357,6 +346,7 @@ def negamax(board, tiefe, color, alpha, beta, zobrist_hash, history, halfmove_cl
             alpha = score_result
         if alpha >= beta:
             break
+    transsquare_table[zobrist_hash] = (tiefe, best_score)
 
     return best_score
 
@@ -377,13 +367,14 @@ def quiescence(board, alpha, beta, color, depth = 10):
     else:
         moves_list = all_moves_white(board)
 
-    capture_moves = [zug for zug in moves_list if board[zug[1][0]][zug[1][1]] != "0"]
+    capture_moves = []
+    for zug in moves_list:
+        start, target = zug
+        if board[target[0]][target[1]] != "0":
+            if SEE(board, start, target) >= 0:
+                capture_moves.append(zug)
 
-    prev_last_move = moves.last_move
-    old_white_short = moves.white_short
-    old_white_long = moves.white_long
-    old_black_short = moves.black_short
-    old_black_long = moves.black_long
+    old_flags = (moves.white_short, moves.white_long, moves.black_short, moves.black_long, moves.last_move)
 
     for zug in capture_moves:
         start, target = zug
@@ -397,11 +388,7 @@ def quiescence(board, alpha, beta, color, depth = 10):
 
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
-        moves.white_short = old_white_short
-        moves.white_long = old_white_long
-        moves.black_short = old_black_short
-        moves.black_long = old_black_long
-        moves.last_move = prev_last_move
+        (moves.white_short, moves.white_long, moves.black_short, moves.black_long, moves.last_move) = old_flags
 
         if score_result >= beta:
             return beta
@@ -410,12 +397,10 @@ def quiescence(board, alpha, beta, color, depth = 10):
 
     return alpha
 
-def score(board, start, target, color):
+def score(board, start, target):
     if board[target[0]][target[1]] != "0":
-        return SEE(board, target, color)
-    wert_start = piece_score.get(board[start[0]][start[1]], 0)
-    wert_target = piece_score.get(board[target[0]][target[1]], 0)
-    return wert_target - wert_start
+        return SEE(board, start, target)
+    return 0
 
 def SEE(board,target,color):
     attackers = []
@@ -519,15 +504,18 @@ def SEE(board,target,color):
             weakest = angriff
     if weakest == None:
         return 0
+    if weakest == None:
+        return 0
     captured_value = piece_score.get(board[target[0]][target[1]],0)
     captured_piece = board[target[0]][target[1]]
     capturing_piece = board[weakest[0]][weakest[1]]
     board[target[0]][target[1]] = capturing_piece
     board[weakest[0]][weakest[1]] = "0"
-    see_result = SEE(board,target, "black" if color == "white" else "white")
+    see_result = SEE(board, target, "black" if color == "white" else "white")
     board[target[0]][target[1]] = captured_piece
     board[weakest[0]][weakest[1]] = capturing_piece
-    return max(0, captured_value - see_result)
+    return captured_value - see_result
+
 
 def choose_move_iterative(board, color, max_depth=99, time_limit=180):
     global SEARCH_START, SEARCH_LIMIT
