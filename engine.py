@@ -171,39 +171,39 @@ def bewerte_material(board):
         for col in range(8):
             if board[row][col] == "B":
                 material -= 1
-                material -= piece_square_table_pawn[row][col] / 50
+                material -= piece_square_table_pawn[row][col] / 100
             if board[row][col] == "-B":
                 material += 1
-                material += piece_square_table_pawn[7 - row][col] / 50
+                material += piece_square_table_pawn[7 - row][col] / 100
             if board[row][col] == "L":
                 material -= 3
-                material -= piece_square_table_bishop[row][col] / 50
+                material -= piece_square_table_bishop[row][col] / 100
             if board[row][col] == "-L":
                 material += 3
-                material += piece_square_table_bishop[7- row][col] / 50
+                material += piece_square_table_bishop[7- row][col] / 100
             if board[row][col] == "S":
                 material -= 3
-                material -= piece_square_table_knight[row][col] / 50
+                material -= piece_square_table_knight[row][col] / 100
             if board[row][col] == "-S":
                 material += 3
-                material += piece_square_table_knight[7 - row][col] / 50
+                material += piece_square_table_knight[7 - row][col] / 100
             if board[row][col] == "T":
                 material -= 5
-                material -= piece_square_table_rook[row][col] / 20
+                material -= piece_square_table_rook[row][col] / 100
             if board[row][col] == "-T":
                 material += 5
-                material += piece_square_table_rook[7 - row][col] / 20
+                material += piece_square_table_rook[7 - row][col] / 100
             if board[row][col] == "D":
                 material -= 9
-                material -= piece_square_table_queen[row][col] / 20
+                material -= piece_square_table_queen[row][col] / 100
             if board[row][col] == "-D":
                 material += 9
-                material += piece_square_table_queen[7 - row][col] / 20
+                material += piece_square_table_queen[7 - row][col] / 100
             if board[row][col] == "K":
-                material -= piece_square_table_king[row][col] / 20
+                material -= piece_square_table_king[row][col] / 100
                 white_king_pos = (row, col)
             if board[row][col] == "-K":
-                material += piece_square_table_king[7 - row][col] / 20
+                material += piece_square_table_king[7 - row][col] / 100
                 black_king_pos = (row, col)
 
     return material
