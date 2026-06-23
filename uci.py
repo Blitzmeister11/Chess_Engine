@@ -4,8 +4,6 @@ from moves import make_move
 from engine import choose_move_iterative
 import moves
 import zobrist
-current_color = "white"
-board = create_board()
 def uci_to_square(uci_str):
     col = ord(uci_str[0]) - ord('a')
     row = 8 - int(uci_str[1])
@@ -26,6 +24,8 @@ def square_to_uci(square):
     return f"{col}{row}"
 def uci_loop():
     global current_color, board
+    current_color = "white"
+    board = create_board()
     while True:
         command = input().strip()
         if command == "uci":

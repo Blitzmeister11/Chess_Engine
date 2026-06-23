@@ -5,7 +5,7 @@ a = Analysis(
     ['gui.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('ChessEngine.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

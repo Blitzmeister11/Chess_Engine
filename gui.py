@@ -3,6 +3,8 @@ from board import create_board, symbols
 from moves import make_move, in_check
 import moves
 from engine import choose_move, all_moves, all_moves_white, choose_move_iterative
+import zobrist
+import uci
 board = create_board()
 pygame.init()
 window = pygame.display.set_mode((700,700), pygame.RESIZABLE)
@@ -121,4 +123,4 @@ while True:
                                     print("Patt")
                                     print("Unentschieden")
                                     pygame.quit()
-                                exit()
+                                    exit()
