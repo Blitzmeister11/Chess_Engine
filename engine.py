@@ -532,6 +532,7 @@ def choose_move_iterative(board, color, max_depth=99, time_limit=180):
 
     return best_move_overall
 
+
 def make_move_search(board, start, target, promotion_piece=None):
     piece = board[start[0]][start[1]]
     captured = board[target[0]][target[1]]
