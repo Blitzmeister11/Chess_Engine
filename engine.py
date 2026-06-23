@@ -242,7 +242,7 @@ def choose_move(board, color, depth=5):
     capture_moves = []
     quiet_moves = []
     for zug in moves_list:
-        start, target = zug
+        start, target, promo = zug
         if board[target[0]][target[1]] != "0":
             capture_moves.append(zug)
         else:
@@ -273,7 +273,7 @@ def choose_move(board, color, depth=5):
 
         if evaluation > best_score:
             best_score = evaluation
-            best_move = (start, target, None)
+            best_move = (start, target, promo)
             alpha = evaluation
 
     return best_move
@@ -292,7 +292,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
     if depth == 0:
         return quiescence(board, alpha, beta, color)
     if time.time() - SEARCH_START > SEARCH_LIMIT:
-        return alpha
+        return bewerte_material(board) if color == "black" else -bewerte_material(board)
 
     moves_list = all_moves(board) if color == "black" else all_moves_white(board)
 
@@ -597,7 +597,7 @@ def unmake_move_search(board):
         ws, wl, bs, bl,
         last, half, h, hist,
         is_castling, rook_start, rook_target,
-        is_en_passant, ep_square
+        is_en_passant, ep_square, ep_piece
     ) = move_stack.pop()
 
     board[start[0]][start[1]] = piece
@@ -607,6 +607,8 @@ def unmake_move_search(board):
         rook_piece = board[rook_target[0]][rook_target[1]]
         board[rook_start[0]][rook_start[1]] = rook_piece
         board[rook_target[0]][rook_target[1]] = "0"
+    if is_en_passant and ep_square is not None:
+        board[ep_square[0]][ep_square[1]] = ep_piece
 
     moves.white_short = ws
     moves.white_long = wl
