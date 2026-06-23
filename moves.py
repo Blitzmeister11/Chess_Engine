@@ -414,10 +414,10 @@ def make_move(board,start_square,end_square, promotion_piece = None):
                 erfolg = True
             if erfolg == True:
                 if board[0][end_square[1]] == "B":
-                    if promotion_piece is not None:
-                        inputPromotion = promotion_piece
+                    if promotion_piece is None:
+                        inputPromotion = "Queen"
                     else:
-                        inputPromotion = promotion_auswahl()
+                        inputPromotion = promotion_piece
                     if inputPromotion == "Queen":
                         board[0][end_square[1]] = "D"
                     if inputPromotion == "rook":

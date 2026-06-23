@@ -342,7 +342,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
 def quiescence(board, alpha, beta, color, depth=10):
     if time.time() - SEARCH_START > SEARCH_LIMIT:
-        return alpha
+        return bewerte_material(board) if color == "black" else -bewerte_material(board)
     stand_pat = bewerte_material(board) if color == "black" else -bewerte_material(board)
     if depth <= 0:
         return stand_pat
