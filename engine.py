@@ -523,8 +523,11 @@ def choose_move_iterative(board, color, max_depth=99, time_limit=180):
             break
         best_move_overall = result
         depth_time = time.time() - start
-        if time.time() - SEARCH_START > SEARCH_LIMIT:
+        if depth_time > last_depth_time * 2.5:
             break
+        if depth >= 3 and depth_time < 0.01:
+            break
+
         last_depth_time = depth_time
 
     return best_move_overall
