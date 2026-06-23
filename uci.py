@@ -24,46 +24,51 @@ def square_to_uci(square):
     col = chr(ord('a') + square[1])
     row = 8 - square[0]
     return f"{col}{row}"
+def uci_loop():
+    global current_color, board
+    while True:
+        command = input().strip()
+        if command == "uci":
+            print("id name MyEngine", flush=True)
+            print("id author Malte", flush=True)
+            print("uciok", flush=True)
+        elif command == "isready":
+            print("readyok", flush=True)
+        elif command == "quit":
+            break
+        elif command.startswith("position"):
+            parts = command.split()
+            board = create_board()
+            current_color = "white"
+            moves.white_short = True
+            moves.white_long = True
+            moves.black_short = True
+            moves.black_long = True
+            moves.last_move = None
+            moves.current_hash = zobrist.compute_hash(board, "white")
+            moves.position_history = {moves.current_hash: 1}
+            moves.halfmove_clock = 0
+            import engine
+            engine.transsquare_table.clear()
+            if "moves" in parts:
+                moves_index = parts.index("moves")
+                move_strings = parts[moves_index + 1:]
+                for move_str in move_strings:
+                    start, end, promotion = parse_move(move_str)
+                    make_move(board, start, end, promotion_piece=promotion)
+                    current_color = "black" if current_color == "white" else "white"
+        elif command.startswith("go"):
+            move = choose_move_iterative(board, current_color)
+            if move is not None:
+                start_square, end_square, promo = move
+                piece = board[start_square[0]][start_square[1]]
+                uci_move = square_to_uci(start_square) + square_to_uci(end_square)
+                if piece == "B" and end_square[0] == 0:
+                    uci_move += "q"
+                if piece == "-B" and end_square[0] == 7:
+                    uci_move += "q"
+                print(f"bestmove {uci_move}", flush=True)
 
-while True:
-    command = input().strip()
-    if command == "uci":
-        print("id name MyEngine", flush=True)
-        print("id author Malte", flush=True)
-        print("uciok", flush=True)
-    elif command == "isready":
-        print("readyok", flush=True)
-    elif command == "quit":
-        break
-    elif command.startswith("position"):
-        parts = command.split()
-        board = create_board()
-        current_color = "white"
-        moves.white_short = True
-        moves.white_long = True
-        moves.black_short = True
-        moves.black_long = True
-        moves.last_move = None
-        moves.current_hash = zobrist.compute_hash(board, "white")
-        moves.position_history = {moves.current_hash: 1}
-        moves.halfmove_clock = 0
-        import engine
-        engine.transsquare_table.clear()
-        if "moves" in parts:
-            moves_index = parts.index("moves")
-            move_strings = parts[moves_index + 1:]
-            for move_str in move_strings:
-                start, end, promotion = parse_move(move_str)
-                make_move(board, start, end, promotion_piece=promotion)
-                current_color = "black" if current_color == "white" else "white"
-    elif command.startswith("go"):
-        move = choose_move_iterative(board, current_color)
-        if move is not None:
-            start_square, end_square, promo = move
-            piece = board[start_square[0]][start_square[1]]
-            uci_move = square_to_uci(start_square) + square_to_uci(end_square)
-            if piece == "B" and end_square[0] == 0:
-                uci_move += "q"
-            if piece == "-B" and end_square[0] == 7:
-                uci_move += "q"
-            print(f"bestmove {uci_move}", flush=True)
+if __name__ == "__main__":
+    uci_loop()
+
