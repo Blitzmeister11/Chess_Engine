@@ -114,22 +114,17 @@ def all_moves(board):
                     felder = king_moves(board, square)
                 for target in felder:
                     piece = board[row][col]
-                    if piece == "B" and target[0] == 7:
+                    if piece == "-B" and target[0] == 7:
                         all_moves.append((square, target, "D"))
                         all_moves.append((square, target, "T"))
                         all_moves.append((square, target, "L"))
                         all_moves.append((square, target, "S"))
-                    elif piece == "-B" and target[0] == 7:
-                        all_moves.append((square, target, "-D"))
-                        all_moves.append((square, target, "-T"))
-                        all_moves.append((square, target, "-L"))
-                        all_moves.append((square, target, "-S"))
                     else:
                         all_moves.append((square, target, None))
 
     prev_last_move = moves.last_move
     for zug in all_moves[:]:
-        start, target = zug
+        start, target, promo = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
         board[target[0]][target[1]] = piece
@@ -174,17 +169,12 @@ def all_moves_white(board):
                         all_moves.append((square, target, "T"))
                         all_moves.append((square, target, "L"))
                         all_moves.append((square, target, "S"))
-                    elif piece == "-B" and target[0] == 7:
-                        all_moves.append((square, target, "-D"))
-                        all_moves.append((square, target, "-T"))
-                        all_moves.append((square, target, "-L"))
-                        all_moves.append((square, target, "-S"))
                     else:
                         all_moves.append((square, target, None))
 
     prev_last_move = moves.last_move
     for zug in all_moves[:]:
-        start, target = zug
+        start, target, promo = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
         board[target[0]][target[1]] = piece
@@ -283,7 +273,7 @@ def choose_move(board, color, depth=5):
 
         if evaluation > best_score:
             best_score = evaluation
-            best_move = (start, target)
+            best_move = (start, target, None)
             alpha = evaluation
 
     return best_move
@@ -302,7 +292,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
     if depth == 0:
         return quiescence(board, alpha, beta, color)
     if time.time() - SEARCH_START > SEARCH_LIMIT:
-        raise TimeoutError
+        return alpha
 
     moves_list = all_moves(board) if color == "black" else all_moves_white(board)
 
@@ -315,9 +305,9 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
     quiet_moves = []
     for start, target, promo in moves_list:
         if board[target[0]][target[1]] != "0":
-            capture_moves.append((start, target))
+            capture_moves.append((start, target, promo))
         else:
-            quiet_moves.append((start, target))
+            quiet_moves.append((start, target, promo))
     moves_list = capture_moves + quiet_moves
 
     best_score = -9999999
@@ -365,7 +355,7 @@ def quiescence(board, alpha, beta, color, depth=10):
 
     capture_moves = []
     for zug in moves_list:
-        start, target = zug
+        start, target, promo = zug
         if board[target[0]][target[1]] != "0":
             if SEE(board, target) >= 0:
                 capture_moves.append(zug)
@@ -567,13 +557,26 @@ def make_move_search(board, start, target, promotion_piece=None):
             rook_start = (0,0)
             rook_target = (0,3)
 
+    is_en_passant = False
+    ep_square = None
+    ep_piece = None
+    if piece == "B" and board[target[0]][target[1]] == "0" and start[1] != target[1]:
+        is_en_passant = True
+        ep_square = (target[0] + 1, target[1])
+        ep_piece = board[ep_square[0]][ep_square[1]]
+    if piece == "-B" and board[target[0]][target[1]] == "0" and start[1] != target[1]:
+        is_en_passant = True
+        ep_square = (target[0] - 1, target[1])
+        ep_piece = board[ep_square[0]][ep_square[1]]
+
     state = (
         start, target, piece, captured,
         moves.white_short, moves.white_long,
         moves.black_short, moves.black_long,
         moves.last_move, moves.halfmove_clock,
         moves.current_hash, dict(moves.position_history),
-        is_castling, rook_start, rook_target
+        is_castling, rook_start, rook_target,
+        is_en_passant, ep_square, ep_piece
     )
 
     move_stack.append(state)
@@ -593,7 +596,8 @@ def unmake_move_search(board):
         start, target, piece, captured,
         ws, wl, bs, bl,
         last, half, h, hist,
-        is_castling, rook_start, rook_target
+        is_castling, rook_start, rook_target,
+        is_en_passant, ep_square
     ) = move_stack.pop()
 
     board[start[0]][start[1]] = piece

@@ -313,9 +313,6 @@ def make_move(board,start_square,end_square, promotion_piece = None):
     black_short_execute = False
     black_long_execute = False
 
-    if promotion_piece is None:
-        return
-
     square = []
     erfolg = False
     if "-" in board[start_square[0]][start_square[1]]:
