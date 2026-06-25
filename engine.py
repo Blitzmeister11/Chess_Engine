@@ -190,44 +190,188 @@ def all_moves_white(board):
 
 def bewerte_material(board):
     material = 0
+    white_king_pos = (7,4)
+    black_king_pos = (0,4)
+    piece_count = 0
+    white_pawns_per_col = [0] * 8
+    black_pawns_per_col = [0] * 8
+    white_bishops = 0
+    black_bishops = 0
+    white_rooks = []
+    black_rooks = []
     for row in range(8):
         for col in range(8):
             if board[row][col] == "B":
                 material -= 1
                 material -= piece_square_table_pawn[row][col] / 50
+                piece_count += 1
+                white_pawns_per_col[col] += 1
             if board[row][col] == "-B":
                 material += 1
                 material += piece_square_table_pawn[7 - row][col] / 50
+                piece_count += 1
+                black_pawns_per_col[col] += 1
             if board[row][col] == "L":
                 material -= 3
                 material -= piece_square_table_bishop[row][col] / 50
+                piece_count += 1
+                white_bishops +=1
             if board[row][col] == "-L":
                 material += 3
                 material += piece_square_table_bishop[7- row][col] / 50
+                piece_count += 1
+                black_bishops +=1
             if board[row][col] == "S":
                 material -= 3
                 material -= piece_square_table_knight[row][col] / 50
+                piece_count += 1
             if board[row][col] == "-S":
                 material += 3
                 material += piece_square_table_knight[7 - row][col] / 50
+                piece_count += 1
             if board[row][col] == "T":
                 material -= 5
                 material -= piece_square_table_rook[row][col] / 50
+                piece_count += 1
+                white_rooks.append((row, col))
             if board[row][col] == "-T":
                 material += 5
                 material += piece_square_table_rook[7 - row][col] / 50
+                piece_count += 1
+                black_rooks.append((row, col))
             if board[row][col] == "D":
                 material -= 9
                 material -= piece_square_table_queen[row][col] / 50
+                piece_count += 1
             if board[row][col] == "-D":
                 material += 9
                 material += piece_square_table_queen[7 - row][col] / 50
+                piece_count += 1
             if board[row][col] == "K":
                 material -= piece_square_table_king[row][col] / 50
                 white_king_pos = (row, col)
             if board[row][col] == "-K":
                 material += piece_square_table_king[7 - row][col] / 50
                 black_king_pos = (row, col)
+
+    if white_bishops >= 2:
+        material -= 0.3
+    if black_bishops >= 2:
+        material += 0.3
+
+    if piece_count <= 6 and abs(material) >= 3:
+        if material < 0:
+            edge_dist = min(black_king_pos[0], 7 - black_king_pos[0],
+                            black_king_pos[1], 7 - black_king_pos[1])
+            king_dist = max(abs(white_king_pos[0] - black_king_pos[0]),
+                            abs(white_king_pos[1] - black_king_pos[1]))
+            material -= (3 - edge_dist) * 0.1
+            material -= (7 - king_dist) * 0.05
+        if material > 0:
+            edge_dist = min(white_king_pos[0], 7 - white_king_pos[0],
+                            white_king_pos[1], 7 - white_king_pos[1])
+            king_dist = max(abs(black_king_pos[0] - white_king_pos[0]),
+                            abs(black_king_pos[1] - white_king_pos[1]))
+            material += (3 - edge_dist) * 0.1
+            material += (7 - king_dist) * 0.05
+
+    for col in range(8):
+        if white_pawns_per_col[col] >= 2:
+            material += 0.3 * (white_pawns_per_col[col] - 1)
+        if black_pawns_per_col[col] >= 2:
+            material -= 0.3 * (black_pawns_per_col[col] - 1)
+
+    for col in range(8):
+        if white_pawns_per_col[col] > 0:
+            left = white_pawns_per_col[col - 1] if col > 0 else 0
+            right = white_pawns_per_col[col + 1] if col < 7 else 0
+            if left == 0 and right == 0:
+                material += 0.2 * white_pawns_per_col[col]
+        if black_pawns_per_col[col] > 0:
+            left = black_pawns_per_col[col - 1] if col > 0 else 0
+            right = black_pawns_per_col[col + 1] if col < 7 else 0
+            if left == 0 and right == 0:
+                material -= 0.2 * black_pawns_per_col[col]
+
+    for col in range(8):
+        for row in range(8):
+            if board[row][col] == "B":
+                is_passed = True
+                for r in range(row - 1, -1, -1):
+                    if col > 0 and board[r][col - 1] == "-B":
+                        is_passed = False
+                    if board[r][col] == "-B":
+                        is_passed = False
+                    if col < 7 and board[r][col + 1] == "-B":
+                        is_passed = False
+                if is_passed:
+                    material -= 0.3 + (6 - row) * 0.1
+            if board[row][col] == "-B":
+                is_passed = True
+                for r in range(row + 1, 8):
+                    if col > 0 and board[r][col - 1] == "B":
+                        is_passed = False
+                    if board[r][col] == "B":
+                        is_passed = False
+                    if col < 7 and board[r][col + 1] == "B":
+                        is_passed = False
+                if is_passed:
+                    material += 0.3 + (row - 1) * 0.1
+    if piece_count > 6:
+        wkr, wkc = white_king_pos
+        white_king_safety = 0
+        for dc in [-1, 0, 1]:
+            c = wkc + dc
+            if 0 <= c <= 7:
+                if wkr - 1 >= 0 and board[wkr - 1][c] == "B":
+                    white_king_safety += 1
+                elif wkr - 2 >= 0 and board[wkr - 2][c] == "B":
+                    white_king_safety += 0.5
+        material += white_king_safety * 0.15
+
+        bkr, bkc = black_king_pos
+        black_king_safety = 0
+        for dc in [-1, 0, 1]:
+            c = bkc + dc
+            if 0 <= c <= 7:
+                if bkr + 1 <= 7 and board[bkr + 1][c] == "-B":
+                    black_king_safety += 1
+                elif bkr + 2 <= 7 and board[bkr + 2][c] == "-B":
+                    black_king_safety += 0.5
+        material -= black_king_safety * 0.15
+
+        if 2 <= wkc <= 5:
+            material += 0.3
+        if 2 <= bkc <= 5:
+            material -= 0.3
+
+        for dc in [-1, 0, 1]:
+            c = wkc + dc
+            if 0 <= c <= 7:
+                if white_pawns_per_col[c] == 0 and black_pawns_per_col[c] == 0:
+                    material += 0.2
+                elif white_pawns_per_col[c] == 0:
+                    material += 0.1
+        for dc in [-1, 0, 1]:
+            c = bkc + dc
+            if 0 <= c <= 7:
+                if white_pawns_per_col[c] == 0 and black_pawns_per_col[c] == 0:
+                    material -= 0.2
+                elif black_pawns_per_col[c] == 0:
+                    material -= 0.1
+
+    for rook in white_rooks:
+        col = rook[1]
+        if white_pawns_per_col[col] == 0 and black_pawns_per_col[col] == 0:
+            material -= 0.2
+        elif white_pawns_per_col[col] == 0:
+            material -= 0.1
+    for rook in black_rooks:
+        col = rook[1]
+        if white_pawns_per_col[col] == 0 and black_pawns_per_col[col] == 0:
+            material += 0.2
+        elif black_pawns_per_col[col] == 0:
+            material += 0.1
 
     return material
 
@@ -523,6 +667,8 @@ def choose_move_iterative(board, color, max_depth=99, time_limit=180):
             break
         best_move_overall = result
         depth_time = time.time() - start
+        if time.time() - SEARCH_START > SEARCH_LIMIT:
+            break
         if depth_time > last_depth_time * 2.5:
             break
         if depth >= 3 and depth_time < 0.01:
