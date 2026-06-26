@@ -648,8 +648,7 @@ def SEE(board, target):
     board[target[0]][target[1]] = captured_piece
     board[weakest[0]][weakest[1]] = capturing_piece
 
-    return captured_value - see_result
-
+    return max(0, captured_value - see_result)
 
 
 def choose_move_iterative(board, color, max_depth=99, time_limit=180):
