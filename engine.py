@@ -87,6 +87,7 @@ SEARCH_START = 0
 SEARCH_LIMIT = 0
 board = create_board()
 move_stack = []
+KILLER = [[None, None] for _ in range(128)]
 
 def all_moves(board):
     all_moves = []
@@ -422,6 +423,16 @@ def choose_move(board, color, depth=5):
 
     return best_move
 
+def move_score(move, depth):
+    start, target, promo = move
+    if board[target[0]][target[1]] != "0":
+        return 1000000
+    if move == KILLER[depth][0]:
+        return 900000
+    if move == KILLER[depth][1]:
+        return 800000
+    return 0
+
 
 def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_clock):
     if zobrist_hash in transsquare_table:
@@ -456,13 +467,16 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
     best_score = -9999999
 
-    for start, target, promo in moves_list:
+    for move in moves_list:
+        start, target, promo = move
         make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
+        ext = 1 if gives_check(board, start, target, promo, color) else 0
+
         score_result = -negamax(
             board,
-            depth - 1,
+            depth - 1 + ext,
             next_color,
             -beta,
             -alpha,
@@ -478,6 +492,10 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
         if score_result > alpha:
             alpha = score_result
         if alpha >= beta:
+            if board[target[0]][target[1]] == "0":
+                if KILLER[depth][0] != move:
+                    KILLER[depth][1] = KILLER[depth][0]
+                    KILLER[depth][0] = move
             break
 
     transsquare_table[zobrist_hash] = (depth, best_score)
@@ -767,4 +785,11 @@ def unmake_move_search(board):
     moves.halfmove_clock = half
     moves.current_hash = h
     moves.position_history = hist
+
+def gives_check(board, start, target, promo, color):
+    make_move_search(board, start, target, promo)
+    r = in_check(board, "white" if color == "black" else "black")
+    unmake_move_search(board)
+    return r
+
 
