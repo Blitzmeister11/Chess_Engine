@@ -51,6 +51,7 @@ def uci_loop():
             import engine
             engine.transsquare_table.clear()
             engine.KILLER = [[None, None] for _ in range(128)]
+            engine.HISTORY = [[0 for _ in range(64)] for _ in range(64)]
             if "moves" in parts:
                 moves_index = parts.index("moves")
                 move_strings = parts[moves_index + 1:]

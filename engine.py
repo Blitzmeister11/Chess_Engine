@@ -88,6 +88,8 @@ SEARCH_LIMIT = 0
 board = create_board()
 move_stack = []
 KILLER = [[None, None] for _ in range(128)]
+HISTORY = [[0 for _ in range(64)] for _ in range(64)]
+
 
 def all_moves(board):
     all_moves = []
@@ -503,24 +505,40 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
             quiet_moves.append((start, target, promo))
 
     capture_moves.sort(key=lambda zug: SEE(board, zug[1]), reverse=True)
-    quiet_moves.sort(key=lambda zug: move_score(zug, depth), reverse=True)
+    quiet_moves.sort(key=lambda zug: history_score(zug), reverse=True)
     moves_list = capture_moves + quiet_moves
 
     best_score = -9999999
+
+    move_index = 0
 
     for move in moves_list:
         start, target, promo = move
         make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
-        ext = 1 if board[target[0]][target[1]] != "0" and gives_check(board, start, target, promo, color) else 0
-
-        new_depth = depth - 1 + ext
+        new_depth = depth - 1
 
         if new_depth > 1 and move not in KILLER[depth] and board[target[0]][target[1]] == "0":
+            reduced_depth = new_depth - 1
+        else:
+            reduced_depth = new_depth
+
+        if move_index == 0:
             score_result = -negamax(
                 board,
-                new_depth - 1,
+                new_depth,
+                next_color,
+                -beta,
+                -alpha,
+                moves.current_hash,
+                moves.position_history,
+                moves.halfmove_clock
+            )
+        else:
+            score_result = -negamax(
+                board,
+                reduced_depth,
                 next_color,
                 -alpha - 1,
                 -alpha,
@@ -539,30 +557,24 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
                     moves.position_history,
                     moves.halfmove_clock
                 )
-        else:
-            score_result = -negamax(
-                board,
-                new_depth,
-                next_color,
-                -beta,
-                -alpha,
-                moves.current_hash,
-                moves.position_history,
-                moves.halfmove_clock
-            )
 
         unmake_move_search(board)
 
         if score_result > best_score:
             best_score = score_result
+            HISTORY[start[0] * 8 + start[1]][target[0] * 8 + target[1]] += depth * depth
+
         if score_result > alpha:
             alpha = score_result
+
         if alpha >= beta:
             if board[target[0]][target[1]] == "0":
                 if KILLER[depth][0] != move:
                     KILLER[depth][1] = KILLER[depth][0]
                     KILLER[depth][0] = move
             break
+
+        move_index += 1
 
     if best_score <= alpha_orig:
         transsquare_table[zobrist_hash] = (depth, best_score, "upper")
@@ -873,5 +885,6 @@ def gives_check(board, start, target, promo, color):
     board[target[0]][target[1]] = captured
     return result
 
-
-
+def history_score(move):
+    start, target, promo = move
+    return HISTORY[start[0]*8 + start[1]][target[0]*8 + target[1]]
