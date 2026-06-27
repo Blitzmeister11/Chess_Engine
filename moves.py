@@ -150,6 +150,13 @@ def queen_moves(board, square):
     square_Queen = rook_ergebnis + bishop_ergebnis
     return square_Queen
 
+def find_King(board):
+    king = []
+    for index, row in enumerate(board):
+            for collum in range(8):
+                if board[index][collum] == "K" or board[index][collum] == "-K":
+                    king.append((index, collum))
+    return king
 
 def king_moves(board, square):
     square_king = []

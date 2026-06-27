@@ -796,7 +796,7 @@ def unmake_move_search(board):
     (
         start, target, piece, captured,
         ws, wl, bs, bl,
-        last, half, h, hist,
+        last, half, h, prev_hash, prev_count,
         is_castling, rook_start, rook_target,
         is_en_passant, ep_square, ep_piece
     ) = move_stack.pop()
@@ -808,6 +808,7 @@ def unmake_move_search(board):
         rook_piece = board[rook_target[0]][rook_target[1]]
         board[rook_start[0]][rook_start[1]] = rook_piece
         board[rook_target[0]][rook_target[1]] = "0"
+
     if is_en_passant and ep_square is not None:
         board[ep_square[0]][ep_square[1]] = ep_piece
 
@@ -817,9 +818,9 @@ def unmake_move_search(board):
     moves.black_long = bl
     moves.last_move = last
     moves.halfmove_clock = half
+
     moves.current_hash = h
     moves.position_history[prev_hash] = prev_count
-    moves.current_hash = h
 
 def gives_check(board, start, target, promo, color):
     piece = board[start[0]][start[1]]
