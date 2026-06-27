@@ -462,6 +462,22 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
             if alpha >= beta:
                 return v
 
+    if depth >= 2 and not in_check(board, color):
+        make_null = True
+        moves.last_move = None
+        score_null = -negamax(
+            board,
+            depth - 1 - 2,
+            "white" if color == "black" else "black",
+            -beta,
+            -beta + 1,
+            zobrist_hash,
+            history,
+            halfmove_clock + 1
+        )
+        if score_null >= beta:
+            return beta
+
     if halfmove_clock >= 100:
         return 0
     if history.get(zobrist_hash, 0) >= 3:
@@ -499,16 +515,41 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
         next_color = "white" if color == "black" else "black"
         ext = 1 if board[target[0]][target[1]] != "0" and gives_check(board, start, target, promo, color) else 0
 
-        score_result = -negamax(
-            board,
-            depth - 1 + ext,
-            next_color,
-            -beta,
-            -alpha,
-            moves.current_hash,
-            moves.position_history,
-            moves.halfmove_clock
-        )
+        new_depth = depth - 1 + ext
+
+        if new_depth > 1 and move not in KILLER[depth] and board[target[0]][target[1]] == "0":
+            score_result = -negamax(
+                board,
+                new_depth - 1,
+                next_color,
+                -alpha - 1,
+                -alpha,
+                moves.current_hash,
+                moves.position_history,
+                moves.halfmove_clock
+            )
+            if score_result > alpha:
+                score_result = -negamax(
+                    board,
+                    new_depth,
+                    next_color,
+                    -beta,
+                    -alpha,
+                    moves.current_hash,
+                    moves.position_history,
+                    moves.halfmove_clock
+                )
+        else:
+            score_result = -negamax(
+                board,
+                new_depth,
+                next_color,
+                -beta,
+                -alpha,
+                moves.current_hash,
+                moves.position_history,
+                moves.halfmove_clock
+            )
 
         unmake_move_search(board)
 
