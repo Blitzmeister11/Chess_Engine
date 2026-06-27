@@ -92,7 +92,7 @@ HISTORY = [[0 for _ in range(64)] for _ in range(64)]
 
 
 def all_moves(board):
-    all_moves = []
+    all_moves_list = []
     for row in range(8):
         for col in range(8):
             felder = []
@@ -118,31 +118,41 @@ def all_moves(board):
                 for target in felder:
                     piece = board[row][col]
                     if piece == "-B" and target[0] == 7:
-                        all_moves.append((square, target, "D"))
-                        all_moves.append((square, target, "T"))
-                        all_moves.append((square, target, "L"))
-                        all_moves.append((square, target, "S"))
+                        all_moves_list.append((square, target, "D"))
+                        all_moves_list.append((square, target, "T"))
+                        all_moves_list.append((square, target, "L"))
+                        all_moves_list.append((square, target, "S"))
                     else:
-                        all_moves.append((square, target, None))
+                        all_moves_list.append((square, target, None))
 
     prev_last_move = moves.last_move
-    for zug in all_moves[:]:
+    for zug in all_moves_list[:]:
         start, target, promo = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
+        ep_square = None
+        ep_piece = None
+        if piece == "-B" and target_inhalt == "0" and start[1] != target[1]:
+            ep_square = (target[0] - 1, target[1])
+            ep_piece = board[ep_square[0]][ep_square[1]]
+            board[ep_square[0]][ep_square[1]] = "0"
+
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
         possible = in_check(board, "black")
-        if possible == True:
-            all_moves.remove(zug)
+        if possible:
+            all_moves_list.remove(zug)
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
+        if ep_square is not None:
+            board[ep_square[0]][ep_square[1]] = ep_piece
+
         moves.last_move = prev_last_move
 
-    return all_moves
+    return all_moves_list
 
 def all_moves_white(board):
-    all_moves = []
+    all_moves_list = []
     for row in range(8):
         for col in range(8):
             felder = []
@@ -168,28 +178,40 @@ def all_moves_white(board):
                 for target in felder:
                     piece = board[row][col]
                     if piece == "B" and target[0] == 0:
-                        all_moves.append((square, target, "D"))
-                        all_moves.append((square, target, "T"))
-                        all_moves.append((square, target, "L"))
-                        all_moves.append((square, target, "S"))
+                        all_moves_list.append((square, target, "D"))
+                        all_moves_list.append((square, target, "T"))
+                        all_moves_list.append((square, target, "L"))
+                        all_moves_list.append((square, target, "S"))
                     else:
-                        all_moves.append((square, target, None))
+                        all_moves_list.append((square, target, None))
 
     prev_last_move = moves.last_move
-    for zug in all_moves[:]:
+    for zug in all_moves_list[:]:
         start, target, promo = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
+
+        ep_square = None
+        ep_piece = None
+        if piece == "B" and target_inhalt == "0" and start[1] != target[1]:
+            ep_square = (target[0] + 1, target[1])
+            ep_piece = board[ep_square[0]][ep_square[1]]
+            board[ep_square[0]][ep_square[1]] = "0"
+
         board[target[0]][target[1]] = piece
         board[start[0]][start[1]] = "0"
         possible = in_check(board, "white")
-        if possible == True:
-            all_moves.remove(zug)
+        if possible:
+            all_moves_list.remove(zug)
         board[start[0]][start[1]] = piece
         board[target[0]][target[1]] = target_inhalt
+
+        if ep_square is not None:
+            board[ep_square[0]][ep_square[1]] = ep_piece
+
         moves.last_move = prev_last_move
 
-    return all_moves
+    return all_moves_list
 
 def bewerte_material(board):
     material = 0
@@ -442,12 +464,18 @@ def choose_move(board, color, depth=5):
 def move_score(move, depth):
     start, target, promo = move
     if board[target[0]][target[1]] != "0":
-        return 1000000
+        see_value = SEE(board, target)
+        if see_value > 0:
+            return 900000 + see_value
+        elif see_value == 0:
+            return 800000
+        else:
+            return 100000 + see_value
     if move == KILLER[depth][0]:
-        return 900000
+        return 700000
     if move == KILLER[depth][1]:
-        return 800000
-    return 0
+        return 600000
+    return history_score(move)
 
 
 def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_clock):
@@ -463,22 +491,6 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
                 beta = min(beta, v)
             if alpha >= beta:
                 return v
-
-    if depth >= 2 and not in_check(board, color):
-        make_null = True
-        moves.last_move = None
-        score_null = -negamax(
-            board,
-            depth - 1 - 2,
-            "white" if color == "black" else "black",
-            -beta,
-            -beta + 1,
-            zobrist_hash,
-            history,
-            halfmove_clock + 1
-        )
-        if score_null >= beta:
-            return beta
 
     if halfmove_clock >= 100:
         return 0
@@ -509,17 +521,19 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
     moves_list = capture_moves + quiet_moves
 
     best_score = -9999999
-
     move_index = 0
 
     for move in moves_list:
         start, target, promo = move
+
+        is_capture = board[target[0]][target[1]] != "0"
+
         make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
         new_depth = depth - 1
 
-        if new_depth > 1 and move not in KILLER[depth] and board[target[0]][target[1]] == "0":
+        if new_depth > 1 and not is_capture and move not in KILLER[depth]:
             reduced_depth = new_depth - 1
         else:
             reduced_depth = new_depth
@@ -568,7 +582,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
             alpha = score_result
 
         if alpha >= beta:
-            if board[target[0]][target[1]] == "0":
+            if not is_capture:
                 if KILLER[depth][0] != move:
                     KILLER[depth][1] = KILLER[depth][0]
                     KILLER[depth][0] = move
@@ -633,125 +647,91 @@ def SEE(board, target):
     if piece_on_target == "0":
         return 0
 
-    color = "white" if "-" not in piece_on_target else "black"
+    attackers_white = []
+    attackers_black = []
 
-    attackers = []
+    for dr, dc in direction_straight:
+        r, c = target
+        while True:
+            r += dr
+            c += dc
+            if r < 0 or r > 7 or c < 0 or c > 7:
+                break
+            p = board[r][c]
+            if p != "0":
+                if p in ("T", "D"):
+                    attackers_white.append((r, c, piece_score[p]))
+                if p in ("-T", "-D"):
+                    attackers_black.append((r, c, piece_score[p]))
+                break
 
-    for richtung in direction_straight:
-        aktuelle_reihe = target[0]
-        aktuelle_spalte = target[1]
-        piece_gefunden = False
-        while not piece_gefunden:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                piece_gefunden = True
-                continue
-            if color == "white":
-                if board[neue_reihe][neue_spalte] == "-T" or board[neue_reihe][neue_spalte] == "-D":
-                    piece_gefunden = True
-                    attackers.append((neue_reihe, neue_spalte))
-                if board[neue_reihe][neue_spalte] != "0":
-                    piece_gefunden = True
-                    continue
-            else:
-                if board[neue_reihe][neue_spalte] == "T" or board[neue_reihe][neue_spalte] == "D":
-                    piece_gefunden = True
-                    attackers.append((neue_reihe, neue_spalte))
-                if board[neue_reihe][neue_spalte] != "0":
-                    piece_gefunden = True
-                    continue
-            aktuelle_reihe = neue_reihe
-            aktuelle_spalte = neue_spalte
+    for dr, dc in direction_diagonal:
+        r, c = target
+        while True:
+            r += dr
+            c += dc
+            if r < 0 or r > 7 or c < 0 or c > 7:
+                break
+            p = board[r][c]
+            if p != "0":
+                if p in ("L", "D"):
+                    attackers_white.append((r, c, piece_score[p]))
+                if p in ("-L", "-D"):
+                    attackers_black.append((r, c, piece_score[p]))
+                break
 
-    for richtung in direction_diagonal:
-        aktuelle_reihe = target[0]
-        aktuelle_spalte = target[1]
-        piece_gefunden = False
-        while not piece_gefunden:
-            neue_reihe = aktuelle_reihe + richtung[0]
-            neue_spalte = aktuelle_spalte + richtung[1]
-            if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-                piece_gefunden = True
-                continue
-            if color == "white":
-                if board[neue_reihe][neue_spalte] == "-L" or board[neue_reihe][neue_spalte] == "-D":
-                    piece_gefunden = True
-                    attackers.append((neue_reihe, neue_spalte))
-                if board[neue_reihe][neue_spalte] != "0":
-                    piece_gefunden = True
-                    continue
-            else:
-                if board[neue_reihe][neue_spalte] == "L" or board[neue_reihe][neue_spalte] == "D":
-                    piece_gefunden = True
-                    attackers.append((neue_reihe, neue_spalte))
-                if board[neue_reihe][neue_spalte] != "0":
-                    piece_gefunden = True
-                    continue
-            aktuelle_reihe = neue_reihe
-            aktuelle_spalte = neue_spalte
+    for dr, dc in direction_Knight:
+        r = target[0] + dr
+        c = target[1] + dc
+        if 0 <= r <= 7 and 0 <= c <= 7:
+            p = board[r][c]
+            if p == "S":
+                attackers_white.append((r, c, piece_score[p]))
+            if p == "-S":
+                attackers_black.append((r, c, piece_score[p]))
 
-    for richtung in direction_Knight:
-        neue_reihe = target[0] + richtung[0]
-        neue_spalte = target[1] + richtung[1]
-        if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-            continue
-        if color == "white":
-            if board[neue_reihe][neue_spalte] == "-S":
-                attackers.append((neue_reihe, neue_spalte))
+    for dr, dc in direction_King:
+        r = target[0] + dr
+        c = target[1] + dc
+        if 0 <= r <= 7 and 0 <= c <= 7:
+            p = board[r][c]
+            if p == "K":
+                attackers_white.append((r, c, piece_score[p]))
+            if p == "-K":
+                attackers_black.append((r, c, piece_score[p]))
+
+    r, c = target
+    if r > 0:
+        if c > 0 and board[r-1][c-1] == "-B":
+            attackers_black.append((r-1, c-1, 1))
+        if c < 7 and board[r-1][c+1] == "-B":
+            attackers_black.append((r-1, c+1, 1))
+    if r < 7:
+        if c > 0 and board[r+1][c-1] == "B":
+            attackers_white.append((r+1, c-1, 1))
+        if c < 7 and board[r+1][c+1] == "B":
+            attackers_white.append((r+1, c+1, 1))
+
+    attackers_white.sort(key=lambda x: x[2])
+    attackers_black.sort(key=lambda x: x[2])
+
+    def exchange(side, w, b, gain):
+        if side == "white":
+            if not w:
+                return gain
+            r, c, v = w[0]
+            new_w = w[1:]
+            new_b = [(rr, cc, vv) for rr, cc, vv in b if not (rr == r and cc == c)]
+            return max(gain, -exchange("black", new_w, new_b, gain - v))
         else:
-            if board[neue_reihe][neue_spalte] == "S":
-                attackers.append((neue_reihe, neue_spalte))
+            if not b:
+                return gain
+            r, c, v = b[0]
+            new_b = b[1:]
+            new_w = [(rr, cc, vv) for rr, cc, vv in w if not (rr == r and cc == c)]
+            return max(gain, -exchange("white", new_w, new_b, gain - v))
 
-    for richtung in direction_King:
-        neue_reihe = target[0] + richtung[0]
-        neue_spalte = target[1] + richtung[1]
-        if neue_reihe < 0 or neue_reihe > 7 or neue_spalte < 0 or neue_spalte > 7:
-            continue
-        if color == "white":
-            if board[neue_reihe][neue_spalte] == "-K":
-                attackers.append((neue_reihe, neue_spalte))
-        else:
-            if board[neue_reihe][neue_spalte] == "K":
-                attackers.append((neue_reihe, neue_spalte))
-
-    if color == "white":
-        if target[0] - 1 >= 0 and target[1] + 1 <= 7:
-            if board[target[0] - 1][target[1] + 1] == "-B":
-                attackers.append((target[0] - 1, target[1] + 1))
-        if target[0] - 1 >= 0 and target[1] - 1 >= 0:
-            if board[target[0] - 1][target[1] - 1] == "-B":
-                attackers.append((target[0] - 1, target[1] - 1))
-    else:
-        if target[0] + 1 <= 7 and target[1] + 1 <= 7:
-            if board[target[0] + 1][target[1] + 1] == "B":
-                attackers.append((target[0] + 1, target[1] + 1))
-        if target[0] + 1 <= 7 and target[1] - 1 >= 0:
-            if board[target[0] + 1][target[1] - 1] == "B":
-                attackers.append((target[0] + 1, target[1] - 1))
-
-    weakest = None
-    weakest_wert = 9999
-    for angriff in attackers:
-        wert = piece_score.get(board[angriff[0]][angriff[1]], 0)
-        if wert < weakest_wert:
-            weakest_wert = wert
-            weakest = angriff
-    if weakest is None:
-        return 0
-
-    captured_value = piece_score.get(board[target[0]][target[1]], 0)
-    captured_piece = board[target[0]][target[1]]
-    capturing_piece = board[weakest[0]][weakest[1]]
-
-    board[target[0]][target[1]] = capturing_piece
-    board[weakest[0]][weakest[1]] = "0"
-    see_result = SEE(board, target)
-    board[target[0]][target[1]] = captured_piece
-    board[weakest[0]][weakest[1]] = capturing_piece
-
-    return max(0, captured_value - see_result)
-
+    return exchange("white", attackers_white, attackers_black, 0)
 
 def choose_move_iterative(board, color, max_depth=99, time_limit=180):
     global SEARCH_START, SEARCH_LIMIT

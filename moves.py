@@ -544,7 +544,7 @@ def in_check(board,color):
     return king_attacked
 
 
-def rochade_schach(board,square,color):
+def rochade_schach(board, square, color):
     king_attacked = False
     for direction in direction_straight:
         now_row = square[0]
@@ -603,22 +603,20 @@ def rochade_schach(board,square,color):
                     continue
                 now_row = new_row
                 now_collum = new_collum
-
     if color == "white":
-        if square[0] + 1 <= 7 and square[1] + 1 <= 7:
+        if square[0] - 1 >= 0 and square[1] + 1 <= 7:
             if board[square[0] - 1][square[1] + 1] == "-B":
                 king_attacked = True
-        if square[0] + 1 <= 7 and square[1] - 1 >= 0:
+        if square[0] - 1 >= 0 and square[1] - 1 >= 0:
             if board[square[0] - 1][square[1] - 1] == "-B":
                 king_attacked = True
     if color == "black":
-        if square[0] - 1 >= 0 and square[1] + 1 <= 7:
+        if square[0] + 1 <= 7 and square[1] + 1 <= 7:
             if board[square[0] + 1][square[1] + 1] == "B":
                 king_attacked = True
-        if square[0] - 1 >= 0 and square[1] - 1 >= 0:
+        if square[0] + 1 <= 7 and square[1] - 1 >= 0:
             if board[square[0] + 1][square[1] - 1] == "B":
                 king_attacked = True
-
 
     for direction in direction_Knight:
         new_row = square[0] + direction[0]
@@ -633,6 +631,7 @@ def rochade_schach(board,square,color):
                 king_attacked = True
 
     return king_attacked
+
 
 def promotion_auswahl():
     window_Tk = Tk()
