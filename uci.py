@@ -50,6 +50,7 @@ def uci_loop():
             moves.halfmove_clock = 0
             import engine
             engine.transsquare_table.clear()
+            engine.KILLER = [[None, None] for _ in range(128)]
             if "moves" in parts:
                 moves_index = parts.index("moves")
                 move_strings = parts[moves_index + 1:]

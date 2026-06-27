@@ -4,7 +4,6 @@ from moves import make_move, in_check
 import moves
 from engine import choose_move, all_moves, all_moves_white, choose_move_iterative
 import zobrist
-import uci
 board = create_board()
 pygame.init()
 window = pygame.display.set_mode((700,700), pygame.RESIZABLE)
@@ -110,7 +109,7 @@ while True:
                             pygame.display.flip()
                             engine_move = choose_move_iterative(board, "black", time_limit=180)
                             if engine_move is not None:
-                                make_move(board, engine_move[0], engine_move[1])
+                                make_move(board, engine_move[0], engine_move[1], promotion_piece=engine_move[2])
                                 turn = "white"
                                 answer_moves = all_moves_white(board)
                                 schach = in_check(board, "white")

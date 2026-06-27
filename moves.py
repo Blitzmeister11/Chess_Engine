@@ -46,13 +46,6 @@ direction_King = [
     (0, +1),
     (0, -1),
 ]
-def find_knight(board):
-    knight = []
-    for index, row in enumerate(board):
-            for collum in range(8):
-                if board[index][collum] == "S" or board[index][collum] == "-S":
-                    knight.append((index, collum))
-    return knight
 
 def knight_moves(board, square):
     square_knight = []
@@ -71,14 +64,6 @@ def knight_moves(board, square):
 
         square_knight.append((new_row, new_collum))
     return square_knight
-
-def find_rook(board):
-    rook = []
-    for index, row in enumerate(board):
-            for collum in range(8):
-                if board[index][collum] == "T" or board[index][collum] == "-T":
-                    rook.append((index, collum))
-    return rook
 
 def rook_moves(board, square):
     square_rook = []
@@ -119,13 +104,6 @@ def rook_moves(board, square):
 
     return square_rook
 
-def find_bishop(board):
-    bishop = []
-    for index, row in enumerate(board):
-            for collum in range(8):
-                if board[index][collum] == "L" or board[index][collum] == "-L":
-                    bishop.append((index, collum))
-    return bishop
 
 def bishop_moves(board, square):
     square_bishop = []
@@ -165,13 +143,6 @@ def bishop_moves(board, square):
 
     return square_bishop
 
-def find_Queen(board):
-    Queen = []
-    for index, row in enumerate(board):
-            for collum in range(8):
-                if board[index][collum] == "D" or board[index][collum] == "-D":
-                    Queen.append((index, collum))
-    return Queen
 
 def queen_moves(board, square):
     rook_ergebnis = rook_moves(board, square)
@@ -179,13 +150,6 @@ def queen_moves(board, square):
     square_Queen = rook_ergebnis + bishop_ergebnis
     return square_Queen
 
-def find_King(board):
-    king = []
-    for index, row in enumerate(board):
-            for collum in range(8):
-                if board[index][collum] == "K" or board[index][collum] == "-K":
-                    king.append((index, collum))
-    return king
 
 def king_moves(board, square):
     square_king = []
@@ -222,14 +186,6 @@ def king_moves(board, square):
                 square_king.append((0,2))
 
     return  square_king
-
-def finde_pawn(board):
-    pawn = []
-    for index, row in enumerate(board):
-        for collum in range(8):
-            if board[index][collum] == "B" or board[index][collum] == "-B":
-                pawn.append((index, collum))
-    return pawn
 
 def pawn_moves(board, square, color, last_move):
     square_pawn = []
@@ -346,6 +302,17 @@ def make_move(board,start_square,end_square, promotion_piece = None):
     if end_square in square:
         piece = board[start_square[0]][start_square[1]]
         target_inhalt = board[end_square[0]][end_square[1]]
+        if target_inhalt == "T":
+            if end_square == (7, 0):
+                white_long = False
+            if end_square == (7, 7):
+                white_short = False
+
+        if target_inhalt == "-T":
+            if end_square == (0, 0):
+                black_long = False
+            if end_square == (0, 7):
+                black_short = False
         board[end_square[0]][end_square[1]] = board[start_square[0]][start_square[1]]
         board[start_square[0]][start_square[1]] = "0"
         verursacht_schach = in_check(board,color)

@@ -196,6 +196,8 @@ def bewerte_material(board):
     piece_count = 0
     white_pawns_per_col = [0] * 8
     black_pawns_per_col = [0] * 8
+    white_pawn_rows = [[] for _ in range(8)]
+    black_pawn_rows = [[] for _ in range(8)]
     white_bishops = 0
     black_bishops = 0
     white_rooks = []
@@ -207,11 +209,13 @@ def bewerte_material(board):
                 material -= piece_square_table_pawn[row][col] / 50
                 piece_count += 1
                 white_pawns_per_col[col] += 1
+                white_pawn_rows[col].append(row)
             if board[row][col] == "-B":
                 material += 1
                 material += piece_square_table_pawn[7 - row][col] / 50
                 piece_count += 1
                 black_pawns_per_col[col] += 1
+                black_pawn_rows[col].append(row)
             if board[row][col] == "L":
                 material -= 3
                 material -= piece_square_table_bishop[row][col] / 50
@@ -295,29 +299,39 @@ def bewerte_material(board):
                 material -= 0.2 * black_pawns_per_col[col]
 
     for col in range(8):
-        for row in range(8):
-            if board[row][col] == "B":
-                is_passed = True
-                for r in range(row - 1, -1, -1):
-                    if col > 0 and board[r][col - 1] == "-B":
-                        is_passed = False
-                    if board[r][col] == "-B":
-                        is_passed = False
-                    if col < 7 and board[r][col + 1] == "-B":
-                        is_passed = False
-                if is_passed:
-                    material -= 0.3 + (6 - row) * 0.1
-            if board[row][col] == "-B":
-                is_passed = True
-                for r in range(row + 1, 8):
-                    if col > 0 and board[r][col - 1] == "B":
-                        is_passed = False
-                    if board[r][col] == "B":
-                        is_passed = False
-                    if col < 7 and board[r][col + 1] == "B":
-                        is_passed = False
-                if is_passed:
-                    material += 0.3 + (row - 1) * 0.1
+        for row in white_pawn_rows[col]:
+            blockers = False
+            for r in black_pawn_rows[col]:
+                if r < row:
+                    blockers = True
+            if col > 0:
+                for r in black_pawn_rows[col - 1]:
+                    if r < row:
+                        blockers = True
+            if col < 7:
+                for r in black_pawn_rows[col + 1]:
+                    if r < row:
+                        blockers = True
+            if not blockers:
+                material -= 0.3 + (6 - row) * 0.1
+
+    for col in range(8):
+        for row in black_pawn_rows[col]:
+            blockers = False
+            for r in white_pawn_rows[col]:
+                if r > row:
+                    blockers = True
+            if col > 0:
+                for r in white_pawn_rows[col - 1]:
+                    if r > row:
+                        blockers = True
+            if col < 7:
+                for r in white_pawn_rows[col + 1]:
+                    if r > row:
+                        blockers = True
+            if not blockers:
+                material += 0.3 + (row - 1) * 0.1
+
     if piece_count > 6:
         wkr, wkc = white_king_pos
         white_king_safety = 0
@@ -394,7 +408,7 @@ def choose_move(board, color, depth=5):
             quiet_moves.append(zug)
     moves_list = capture_moves + quiet_moves
 
-    moves_list.sort(key=lambda zug: score(board, zug[0], zug[1]), reverse=True)
+    moves_list.sort(key=lambda zug: move_score(zug, depth), reverse=True)
 
     best_move = None
     best_score = -9999999
@@ -435,10 +449,18 @@ def move_score(move, depth):
 
 
 def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_clock):
+    alpha_orig = alpha
     if zobrist_hash in transsquare_table:
-        d, v = transsquare_table[zobrist_hash]
+        d, v, bound = transsquare_table[zobrist_hash]
         if d >= depth:
-            return v
+            if bound == "exact":
+                return v
+            if bound == "lower":
+                alpha = max(alpha, v)
+            if bound == "upper":
+                beta = min(beta, v)
+            if alpha >= beta:
+                return v
 
     if halfmove_clock >= 100:
         return 0
@@ -463,6 +485,9 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
             capture_moves.append((start, target, promo))
         else:
             quiet_moves.append((start, target, promo))
+
+    capture_moves.sort(key=lambda zug: SEE(board, zug[1]), reverse=True)
+    quiet_moves.sort(key=lambda zug: move_score(zug, depth), reverse=True)
     moves_list = capture_moves + quiet_moves
 
     best_score = -9999999
@@ -472,7 +497,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
         make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
-        ext = 1 if gives_check(board, start, target, promo, color) else 0
+        ext = 1 if board[target[0]][target[1]] != "0" and gives_check(board, start, target, promo, color) else 0
 
         score_result = -negamax(
             board,
@@ -498,7 +523,13 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
                     KILLER[depth][0] = move
             break
 
-    transsquare_table[zobrist_hash] = (depth, best_score)
+    if best_score <= alpha_orig:
+        transsquare_table[zobrist_hash] = (depth, best_score, "upper")
+    elif best_score >= beta:
+        transsquare_table[zobrist_hash] = (depth, best_score, "lower")
+    else:
+        transsquare_table[zobrist_hash] = (depth, best_score, "exact")
+
     return best_score
 
 
@@ -736,12 +767,15 @@ def make_move_search(board, start, target, promotion_piece=None):
         ep_square = (target[0] - 1, target[1])
         ep_piece = board[ep_square[0]][ep_square[1]]
 
+    prev_hash = moves.current_hash
+    prev_count = moves.position_history.get(prev_hash, 0)
+
     state = (
         start, target, piece, captured,
         moves.white_short, moves.white_long,
         moves.black_short, moves.black_long,
         moves.last_move, moves.halfmove_clock,
-        moves.current_hash, dict(moves.position_history),
+        moves.current_hash, prev_hash, prev_count,
         is_castling, rook_start, rook_target,
         is_en_passant, ep_square, ep_piece
     )
@@ -784,12 +818,17 @@ def unmake_move_search(board):
     moves.last_move = last
     moves.halfmove_clock = half
     moves.current_hash = h
-    moves.position_history = hist
+    moves.position_history[prev_hash] = prev_count
+    moves.current_hash = h
 
 def gives_check(board, start, target, promo, color):
-    make_move_search(board, start, target, promo)
-    r = in_check(board, "white" if color == "black" else "black")
-    unmake_move_search(board)
-    return r
+    piece = board[start[0]][start[1]]
+    captured = board[target[0]][target[1]]
+    board[target[0]][target[1]] = piece
+    board[start[0]][start[1]] = "0"
+    result = in_check(board, "white" if color == "black" else "black")
+    board[start[0]][start[1]] = piece
+    board[target[0]][target[1]] = captured
+    return result
 
 
