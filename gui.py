@@ -5,6 +5,8 @@ import moves
 from engine import choose_move, all_moves, all_moves_white, choose_move_iterative
 import zobrist
 board = create_board()
+moves.current_hash = zobrist.compute_hash(board, "white")
+moves.position_history = {moves.current_hash: 1}
 pygame.init()
 window = pygame.display.set_mode((700,700), pygame.RESIZABLE)
 turn = "white"

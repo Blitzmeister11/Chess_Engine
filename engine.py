@@ -83,12 +83,14 @@ piece_score = {
         "-K":0
 }
 transsquare_table = {}
+TT_GENERATION = 0
 SEARCH_START = 0
 SEARCH_LIMIT = 0
 board = create_board()
 move_stack = []
 KILLER = [[None, None] for _ in range(128)]
 HISTORY = [[0 for _ in range(64)] for _ in range(64)]
+NODE_COUNT = 0
 
 
 def all_moves(board):
@@ -430,9 +432,10 @@ def choose_move(board, color, depth=5):
             capture_moves.append(zug)
         else:
             quiet_moves.append(zug)
-    moves_list = capture_moves + quiet_moves
 
-    moves_list.sort(key=lambda zug: move_score(zug, depth), reverse=True)
+    capture_moves.sort(key=lambda zug: move_score(zug, depth), reverse=True)
+    quiet_moves.sort(key=lambda zug: move_score(zug, depth), reverse=True)
+    moves_list = capture_moves + quiet_moves
 
     best_move = None
     best_score = -9999999
@@ -480,9 +483,12 @@ def move_score(move, depth):
 
 def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_clock):
     alpha_orig = alpha
+    print(f"negamax aufgerufen: depth={depth}, hash={zobrist_hash}, history_count={history.get(zobrist_hash, 0)}")
+    global NODE_COUNT
+    NODE_COUNT += 1
     if zobrist_hash in transsquare_table:
-        d, v, bound = transsquare_table[zobrist_hash]
-        if d >= depth:
+        d, v, bound, gen = transsquare_table[zobrist_hash]
+        if gen == TT_GENERATION and d >= depth:
             if bound == "exact":
                 return v
             if bound == "lower":
@@ -496,15 +502,19 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
         return 0
     if history.get(zobrist_hash, 0) >= 3:
         return 0
-    if depth == 0:
-        return quiescence(board, alpha, beta, color)
+
     if time.time() - SEARCH_START > SEARCH_LIMIT:
         return bewerte_material(board) if color == "black" else -bewerte_material(board)
 
+    if depth == 0:
+        return quiescence(board, alpha, beta, color)
+
     moves_list = all_moves(board) if color == "black" else all_moves_white(board)
 
+    in_check_now = in_check(board, color)
+
     if not moves_list:
-        if in_check(board, color):
+        if in_check_now:
             return -1000 - depth
         return 0
 
@@ -517,7 +527,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
             quiet_moves.append((start, target, promo))
 
     capture_moves.sort(key=lambda zug: SEE(board, zug[1]), reverse=True)
-    quiet_moves.sort(key=lambda zug: history_score(zug), reverse=True)
+    quiet_moves.sort(key=lambda zug: move_score(zug, depth), reverse=True)
     moves_list = capture_moves + quiet_moves
 
     best_score = -9999999
@@ -528,15 +538,17 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
         is_capture = board[target[0]][target[1]] != "0"
 
+        move_gives_check = gives_check(board, start, target, promo, color)
+        extension = 1 if move_gives_check else 0
+
+        if in_check_now:
+            extension = max(extension, 1)
+
+        new_depth = depth - 1 + min(extension, 1) if depth < 20 else depth - 1
+
         make_move_search(board, start, target, promo)
 
         next_color = "white" if color == "black" else "black"
-        new_depth = depth - 1
-
-        if new_depth > 1 and not is_capture and move not in KILLER[depth]:
-            reduced_depth = new_depth - 1
-        else:
-            reduced_depth = new_depth
 
         if move_index == 0:
             score_result = -negamax(
@@ -550,6 +562,22 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
                 moves.halfmove_clock
             )
         else:
+            can_reduce = (
+                move_index >= 3
+                and new_depth >= 3
+                and not is_capture
+                and move != KILLER[depth][0]
+                and move != KILLER[depth][1]
+                and not move_gives_check
+                and not in_check_now
+            )
+
+            if can_reduce:
+                reduction = 1 + move_index // 6
+                reduced_depth = max(1, new_depth - reduction)
+            else:
+                reduced_depth = new_depth
+
             score_result = -negamax(
                 board,
                 reduced_depth,
@@ -560,6 +588,7 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
                 moves.position_history,
                 moves.halfmove_clock
             )
+
             if score_result > alpha:
                 score_result = -negamax(
                     board,
@@ -576,7 +605,6 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
         if score_result > best_score:
             best_score = score_result
-            HISTORY[start[0] * 8 + start[1]][target[0] * 8 + target[1]] += depth * depth
 
         if score_result > alpha:
             alpha = score_result
@@ -586,16 +614,17 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
                 if KILLER[depth][0] != move:
                     KILLER[depth][1] = KILLER[depth][0]
                     KILLER[depth][0] = move
+                HISTORY[start[0] * 8 + start[1]][target[0] * 8 + target[1]] += depth * depth
             break
 
         move_index += 1
 
     if best_score <= alpha_orig:
-        transsquare_table[zobrist_hash] = (depth, best_score, "upper")
+        transsquare_table[zobrist_hash] = (depth, best_score, "upper", TT_GENERATION)
     elif best_score >= beta:
-        transsquare_table[zobrist_hash] = (depth, best_score, "lower")
+        transsquare_table[zobrist_hash] = (depth, best_score, "lower", TT_GENERATION)
     else:
-        transsquare_table[zobrist_hash] = (depth, best_score, "exact")
+        transsquare_table[zobrist_hash] = (depth, best_score, "exact", TT_GENERATION)
 
     return best_score
 
@@ -735,27 +764,30 @@ def SEE(board, target):
 
 def choose_move_iterative(board, color, max_depth=99, time_limit=180):
     global SEARCH_START, SEARCH_LIMIT
+    global TT_GENERATION
+    global NODE_COUNT
+    TT_GENERATION += 1
     SEARCH_START = time.time()
     SEARCH_LIMIT = time_limit
 
     best_move_overall = None
-    last_depth_time = 0.01
 
     for depth in range(1, max_depth + 1):
-        start = time.time()
+        if time.time() - SEARCH_START > SEARCH_LIMIT:
+            break
+
         result = choose_move(board, color, depth)
         if result is None:
             break
+
         best_move_overall = result
-        depth_time = time.time() - start
+        elapsed = time.time() - SEARCH_START
+        elapsed = time.time() - SEARCH_START
+        print(f"Tiefe {depth} | Nodes: {NODE_COUNT} | Zeit: {elapsed:.2f}s")
+        NODE_COUNT = 0
+
         if time.time() - SEARCH_START > SEARCH_LIMIT:
             break
-        if depth_time > last_depth_time * 2.5:
-            break
-        if depth >= 3 and depth_time < 0.01:
-            break
-
-        last_depth_time = depth_time
 
     return best_move_overall
 
@@ -767,35 +799,35 @@ def make_move_search(board, start, target, promotion_piece=None):
     is_castling = False
     rook_start = None
     rook_target = None
+    rook_piece = None
 
     if piece == "K":
-        if start == (7,4) and target == (7,6):
+        if start == (7, 4) and target == (7, 6):
             is_castling = True
-            rook_start = (7,7)
-            rook_target = (7,5)
-        if start == (7,4) and target == (7,2):
+            rook_start = (7, 7)
+            rook_target = (7, 5)
+        if start == (7, 4) and target == (7, 2):
             is_castling = True
-            rook_start = (7,0)
-            rook_target = (7,3)
-
+            rook_start = (7, 0)
+            rook_target = (7, 3)
     if piece == "-K":
-        if start == (0,4) and target == (0,6):
+        if start == (0, 4) and target == (0, 6):
             is_castling = True
-            rook_start = (0,7)
-            rook_target = (0,5)
-        if start == (0,4) and target == (0,2):
+            rook_start = (0, 7)
+            rook_target = (0, 5)
+        if start == (0, 4) and target == (0, 2):
             is_castling = True
-            rook_start = (0,0)
-            rook_target = (0,3)
+            rook_start = (0, 0)
+            rook_target = (0, 3)
 
     is_en_passant = False
     ep_square = None
     ep_piece = None
-    if piece == "B" and board[target[0]][target[1]] == "0" and start[1] != target[1]:
+    if piece == "B" and captured == "0" and start[1] != target[1]:
         is_en_passant = True
         ep_square = (target[0] + 1, target[1])
         ep_piece = board[ep_square[0]][ep_square[1]]
-    if piece == "-B" and board[target[0]][target[1]] == "0" and start[1] != target[1]:
+    if piece == "-B" and captured == "0" and start[1] != target[1]:
         is_en_passant = True
         ep_square = (target[0] - 1, target[1])
         ep_piece = board[ep_square[0]][ep_square[1]]
@@ -812,17 +844,65 @@ def make_move_search(board, start, target, promotion_piece=None):
         is_castling, rook_start, rook_target,
         is_en_passant, ep_square, ep_piece
     )
-
     move_stack.append(state)
 
-    if piece == "B" and target[0] == 0:
-        promo = "D"
-    elif piece == "-B" and target[0] == 7:
-        promo = "-D"
-    else:
-        promo = promotion_piece
+    h = moves.current_hash
+    h = zobrist.update_hash(h, start[0], start[1], piece)
 
-    make_move(board, start, target, promotion_piece=promo)
+    if captured != "0":
+        h = zobrist.update_hash(h, target[0], target[1], captured)
+
+    board[target[0]][target[1]] = piece
+    board[start[0]][start[1]] = "0"
+
+    if is_en_passant:
+        h = zobrist.update_hash(h, ep_square[0], ep_square[1], ep_piece)
+        board[ep_square[0]][ep_square[1]] = "0"
+
+    if is_castling:
+        rook_piece = board[rook_start[0]][rook_start[1]]
+        h = zobrist.update_hash(h, rook_start[0], rook_start[1], rook_piece)
+        board[rook_start[0]][rook_start[1]] = "0"
+        board[rook_target[0]][rook_target[1]] = rook_piece
+        h = zobrist.update_hash(h, rook_target[0], rook_target[1], rook_piece)
+
+    actual_promotion = None
+    if piece == "B" and target[0] == 0:
+        actual_promotion = promotion_piece if promotion_piece else "D"
+        board[target[0]][target[1]] = actual_promotion
+        h = zobrist.update_hash(h, target[0], target[1], actual_promotion)
+    elif piece == "-B" and target[0] == 7:
+        actual_promotion = promotion_piece if promotion_piece else "-D"
+        board[target[0]][target[1]] = actual_promotion
+        h = zobrist.update_hash(h, target[0], target[1], actual_promotion)
+    else:
+        h = zobrist.update_hash(h, target[0], target[1], piece)
+
+    if piece == "K":
+        moves.white_short = False
+        moves.white_long = False
+    if piece == "-K":
+        moves.black_short = False
+        moves.black_long = False
+    if start == (7, 0): moves.white_long = False
+    if start == (7, 7): moves.white_short = False
+    if start == (0, 0): moves.black_long = False
+    if start == (0, 7): moves.black_short = False
+    if target == (7, 0): moves.white_long = False
+    if target == (7, 7): moves.white_short = False
+    if target == (0, 0): moves.black_long = False
+    if target == (0, 7): moves.black_short = False
+
+    if piece in ("B", "-B") or captured != "0":
+        moves.halfmove_clock = 0
+    else:
+        moves.halfmove_clock += 1
+
+    h = zobrist.flip_turn(h)
+
+    moves.current_hash = h
+    moves.position_history[h] = moves.position_history.get(h, 0) + 1
+    moves.last_move = (start, target, piece)
 
 
 def unmake_move_search(board):
@@ -852,8 +932,15 @@ def unmake_move_search(board):
     moves.last_move = last
     moves.halfmove_clock = half
 
-    moves.current_hash = h
+    post_move_hash = moves.current_hash
+    current_count = moves.position_history.get(post_move_hash, 0)
+    if current_count > 1:
+        moves.position_history[post_move_hash] = current_count - 1
+    else:
+        moves.position_history.pop(post_move_hash, None)
+
     moves.position_history[prev_hash] = prev_count
+    moves.current_hash = h
 
 def gives_check(board, start, target, promo, color):
     piece = board[start[0]][start[1]]

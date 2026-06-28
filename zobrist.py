@@ -21,3 +21,9 @@ def compute_hash(board, color):
     if color == "black":
         h ^= ZOBRIST_TURN
     return h
+
+def update_hash(h, row, col, piece):
+    return h ^ ZOBRIST_TABLE[(row, col, piece)]
+
+def flip_turn(h):
+    return h ^ ZOBRIST_TURN
