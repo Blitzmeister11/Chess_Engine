@@ -127,14 +127,25 @@ def all_moves(board):
                     else:
                         all_moves_list.append((square, target, None))
 
+    in_check_now = in_check(board, "black")
+    pinned = get_pinned_pieces(board, "black")
+
     prev_last_move = moves.last_move
     for zug in all_moves_list[:]:
         start, target, promo = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
+
+        is_king = piece == "-K"
+        is_pinned = start in pinned
+        is_ep = piece == "-B" and target_inhalt == "0" and start[1] != target[1]
+
+        if not in_check_now and not is_king and not is_pinned and not is_ep:
+            continue
+
         ep_square = None
         ep_piece = None
-        if piece == "-B" and target_inhalt == "0" and start[1] != target[1]:
+        if is_ep:
             ep_square = (target[0] - 1, target[1])
             ep_piece = board[ep_square[0]][ep_square[1]]
             board[ep_square[0]][ep_square[1]] = "0"
@@ -187,15 +198,25 @@ def all_moves_white(board):
                     else:
                         all_moves_list.append((square, target, None))
 
+    in_check_now = in_check(board, "white")
+    pinned = get_pinned_pieces(board, "white")
+
     prev_last_move = moves.last_move
     for zug in all_moves_list[:]:
         start, target, promo = zug
         piece = board[start[0]][start[1]]
         target_inhalt = board[target[0]][target[1]]
 
+        is_king = piece == "K"
+        is_pinned = start in pinned
+        is_ep = piece == "B" and target_inhalt == "0" and start[1] != target[1]
+
+        if not in_check_now and not is_king and not is_pinned and not is_ep:
+            continue
+
         ep_square = None
         ep_piece = None
-        if piece == "B" and target_inhalt == "0" and start[1] != target[1]:
+        if is_ep:
             ep_square = (target[0] + 1, target[1])
             ep_piece = board[ep_square[0]][ep_square[1]]
             board[ep_square[0]][ep_square[1]] = "0"
@@ -483,7 +504,6 @@ def move_score(move, depth):
 
 def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_clock):
     alpha_orig = alpha
-    print(f"negamax aufgerufen: depth={depth}, hash={zobrist_hash}, history_count={history.get(zobrist_hash, 0)}")
     global NODE_COUNT
     NODE_COUNT += 1
     if zobrist_hash in transsquare_table:
@@ -538,15 +558,10 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
 
         is_capture = board[target[0]][target[1]] != "0"
 
-        move_gives_check = gives_check(board, start, target, promo, color)
-        extension = 1 if move_gives_check else 0
-
-        if in_check_now:
-            extension = max(extension, 1)
-
-        new_depth = depth - 1 + min(extension, 1) if depth < 20 else depth - 1
-
         make_move_search(board, start, target, promo)
+
+        move_gives_check = False
+        new_depth = depth - 1
 
         next_color = "white" if color == "black" else "black"
 
@@ -955,3 +970,70 @@ def gives_check(board, start, target, promo, color):
 def history_score(move):
     start, target, promo = move
     return HISTORY[start[0]*8 + start[1]][target[0]*8 + target[1]]
+
+
+def get_pinned_pieces(board, color):
+    pinned = set()
+    king_pos = None
+    own = "-" if color == "black" else ""
+    enemy_straight = ("-T", "-D") if color == "white" else ("T", "D")
+    enemy_diagonal = ("-L", "-D") if color == "white" else ("L", "D")
+
+    for row in range(8):
+        for col in range(8):
+            p = board[row][col]
+            if color == "white" and p == "K":
+                king_pos = (row, col)
+            if color == "black" and p == "-K":
+                king_pos = (row, col)
+
+    if king_pos is None:
+        return pinned
+
+    for dr, dc in direction_straight:
+        r, c = king_pos
+        candidate = None
+        while True:
+            r += dr
+            c += dc
+            if r < 0 or r > 7 or c < 0 or c > 7:
+                break
+            p = board[r][c]
+            if p == "0":
+                continue
+            if candidate is None:
+                if color == "white" and "-" not in p:
+                    candidate = (r, c)
+                elif color == "black" and "-" in p:
+                    candidate = (r, c)
+                else:
+                    break
+            else:
+                if p in enemy_straight:
+                    pinned.add(candidate)
+                break
+
+    for dr, dc in direction_diagonal:
+        r, c = king_pos
+        candidate = None
+        while True:
+            r += dr
+            c += dc
+            if r < 0 or r > 7 or c < 0 or c > 7:
+                break
+            p = board[r][c]
+            if p == "0":
+                continue
+            if candidate is None:
+                if color == "white" and "-" not in p:
+                    candidate = (r, c)
+                elif color == "black" and "-" in p:
+                    candidate = (r, c)
+                else:
+                    break
+            else:
+                if p in enemy_diagonal:
+                    pinned.add(candidate)
+                break
+
+    return pinned
