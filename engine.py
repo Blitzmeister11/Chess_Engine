@@ -139,9 +139,9 @@ def all_moves(board):
         is_king = piece == "-K"
         is_pinned = start in pinned
         is_ep = piece == "-B" and target_inhalt == "0" and start[1] != target[1]
-
         if not in_check_now and not is_king and not is_pinned and not is_ep:
             continue
+
 
         ep_square = None
         ep_piece = None
@@ -210,9 +210,9 @@ def all_moves_white(board):
         is_king = piece == "K"
         is_pinned = start in pinned
         is_ep = piece == "B" and target_inhalt == "0" and start[1] != target[1]
-
         if not in_check_now and not is_king and not is_pinned and not is_ep:
             continue
+
 
         ep_square = None
         ep_piece = None
@@ -557,6 +557,11 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
         start, target, promo = move
 
         is_capture = board[target[0]][target[1]] != "0"
+        if depth == 1 and not in_check_now and not is_capture:
+            stand_pat = bewerte_material(board) if color == "black" else -bewerte_material(board)
+            if stand_pat + 1 < alpha:
+                move_index += 1
+                continue
 
         make_move_search(board, start, target, promo)
 
@@ -775,12 +780,17 @@ def SEE(board, target):
             new_w = [(rr, cc, vv) for rr, cc, vv in w if not (rr == r and cc == c)]
             return max(gain, -exchange("white", new_w, new_b, gain - v))
 
-    return exchange("white", attackers_white, attackers_black, 0)
+    initial_value = piece_score.get(piece_on_target, 0)
+    if "-" not in piece_on_target:
+        return exchange("black", attackers_white, attackers_black, initial_value)
+    else:
+        return exchange("white", attackers_white, attackers_black, initial_value)
 
-def choose_move_iterative(board, color, max_depth=99, time_limit=180):
+def choose_move_iterative(board, color, max_depth=99, time_limit=21):
     global SEARCH_START, SEARCH_LIMIT
     global TT_GENERATION
     global NODE_COUNT
+    move_stack.clear()
     TT_GENERATION += 1
     SEARCH_START = time.time()
     SEARCH_LIMIT = time_limit

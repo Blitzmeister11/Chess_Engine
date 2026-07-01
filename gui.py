@@ -4,6 +4,7 @@ from moves import make_move, in_check
 import moves
 from engine import choose_move, all_moves, all_moves_white, choose_move_iterative
 import zobrist
+import os
 board = create_board()
 moves.current_hash = zobrist.compute_hash(board, "white")
 moves.position_history = {moves.current_hash: 1}
@@ -18,8 +19,9 @@ letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
 numbers= ["1", "2", "3", "4", "5", "6", "7", "8"]
 selected = None
 pygame.display.set_caption("Chess Engine")
-icon = pygame.image.load(r"C:\Users\Malte\Downloads\ChessEngine.png")
-pygame.display.set_icon(icon)
+if os.path.exists(r"C:\Users\Malte\Downloads\ChessEngine.png"):
+    icon = pygame.image.load(r"C:\Users\Malte\Downloads\ChessEngine.png")
+    pygame.display.set_icon(icon)
 def draw_board():
     for reihe in range(8):
         for spalte in range(8):
@@ -109,7 +111,7 @@ while True:
                         if turn == "black":
                             draw_board()
                             pygame.display.flip()
-                            engine_move = choose_move_iterative(board, "black", time_limit=180)
+                            engine_move = choose_move_iterative(board, "black", time_limit=21)
                             if engine_move is not None:
                                 make_move(board, engine_move[0], engine_move[1], promotion_piece=engine_move[2])
                                 turn = "white"
