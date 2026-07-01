@@ -786,7 +786,7 @@ def SEE(board, target):
     else:
         return exchange("white", attackers_white, attackers_black, initial_value)
 
-def choose_move_iterative(board, color, max_depth=99, time_limit=21):
+def choose_move_iterative(board, color, max_depth=99, time_limit=180):
     global SEARCH_START, SEARCH_LIMIT
     global TT_GENERATION
     global NODE_COUNT

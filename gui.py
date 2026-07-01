@@ -111,7 +111,7 @@ while True:
                         if turn == "black":
                             draw_board()
                             pygame.display.flip()
-                            engine_move = choose_move_iterative(board, "black", time_limit=21)
+                            engine_move = choose_move_iterative(board, "black", time_limit=180)
                             if engine_move is not None:
                                 make_move(board, engine_move[0], engine_move[1], promotion_piece=engine_move[2])
                                 turn = "white"
