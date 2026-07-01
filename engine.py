@@ -113,7 +113,7 @@ def all_moves(board):
                     felder = knight_moves(board, square)
                 if board[row][col] == "-B":
                     square = (row, col)
-                    felder = pawn_moves(board, square, "black", last_move)
+                    felder = pawn_moves(board, square, "black", moves.last_move)
                 if board[row][col] == "-K":
                     square = (row, col)
                     felder = king_moves(board, square)
@@ -184,7 +184,7 @@ def all_moves_white(board):
                     felder = knight_moves(board, square)
                 if board[row][col] == "B":
                     square = (row, col)
-                    felder = pawn_moves(board, square, "white", last_move)
+                    felder = pawn_moves(board, square, "white", moves.last_move)
                 if board[row][col] == "K":
                     square = (row, col)
                     felder = king_moves(board, square)
@@ -583,13 +583,14 @@ def negamax(board, depth, color, alpha, beta, zobrist_hash, history, halfmove_cl
             )
         else:
             can_reduce = (
-                move_index >= 3
-                and new_depth >= 3
-                and not is_capture
-                and move != KILLER[depth][0]
-                and move != KILLER[depth][1]
-                and not move_gives_check
-                and not in_check_now
+                    move_index >= 4
+                    and new_depth >= 3
+                    and not is_capture
+                    and not move_gives_check
+                    and not in_check_now
+                    and move != KILLER[depth][0]
+                    and move != KILLER[depth][1]
+                    and SEE(board, target) == 0
             )
 
             if can_reduce:
@@ -666,8 +667,8 @@ def quiescence(board, alpha, beta, color, depth=10):
     for zug in moves_list:
         start, target, promo = zug
         if board[target[0]][target[1]] != "0":
-            if SEE(board, target) >= 0:
-                capture_moves.append(zug)
+            capture_moves.append(zug)
+    capture_moves.sort(key=lambda z: SEE(board, z[1]), reverse=True)
 
     for start, target, promo in capture_moves:
         make_move_search(board, start, target, promo)
